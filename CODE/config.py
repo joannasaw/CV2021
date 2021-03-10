@@ -1,11 +1,16 @@
 import os
-
+from pathlib import Path
 # initilaize the path to the original input dataset
-ORIG_INPUT_DATASET = "" 
+ORIG_INPUT_DATASET = ""
 
 # initialize the base path to the *new* directory that will contain
 # our images after computing the training and testing split
 BASE_PATH = ""
+dir_path = os.path.dirname(os.path.realpath(__file__))
+BASE_PATH = str(Path(dir_path).parents[0])
+
+# initialize DATA directory
+DATA_PATH = os.path.sep.join([BASE_PATH, "DATA"])
 
 # derive the training, validation, and testing directories
 TRAIN_PATH = os.path.sep.join([BASE_PATH, "training"])
