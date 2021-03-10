@@ -1,16 +1,20 @@
 import os
 
-# initilaize the path to the original input dataset
-ORIG_INPUT_DATASET = "" 
+# init the path to the original input dataset
+ORIG_INPUT_DATASET = "videos" 
 
-# initialize the base path to the *new* directory that will contain
-# our images after computing the training and testing split
-BASE_PATH = ""
+# init the base path to the *new* directory containing images
+BASE_IMAGES_PATH = "images"
+BASE_LABELS_PATH = "labels"
 
 # derive the training, validation, and testing directories
-TRAIN_PATH = os.path.sep.join([BASE_PATH, "training"])
-VAL_PATH = os.path.sep.join([BASE_PATH, "validation"])
-TEST_PATH = os.path.sep.join([BASE_PATH, "testing"])
+TRAIN_PATH = os.path.sep.join([BASE_IMAGES_PATH, ""])
+VAL_PATH = os.path.sep.join([BASE_IMAGES_PATH, "val_set"])
+TEST_PATH = os.path.sep.join([BASE_IMAGES_PATH, ""])
+
+TRAIN_LABELS = os.path.sep.join([BASE_LABELS_PATH, ""])
+VAL_LABELS = os.path.sep.join([BASE_LABELS_PATH, "val_labels.csv"])
+TEST_LABELS = os.path.sep.join([BASE_LABELS_PATH, ""])
 
 # define the amount of data that will be used training
 TRAIN_SPLIT = 0.9
@@ -18,6 +22,7 @@ TRAIN_SPLIT = 0.9
 VAL_SPLIT = 0.05
 # define the names of the classes
 CLASSES = [""]
+NUM_CLASSES = 226
 
 # initialize the with, height and no. of channels
 WIDTH = 16
