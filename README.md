@@ -1,6 +1,6 @@
 ## CV2021
 This README.md documents the files and work for 50.035 Computer Vision taken in Spring 2021.
-
+```
 ├── CODE
 │   ├── config.py
 │   ├── models.py
@@ -12,5 +12,6 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 │
 ├── .gitignore
 └── README.md
+```
 
 * Note that the DATA folder will be ignored, and must be created locally
