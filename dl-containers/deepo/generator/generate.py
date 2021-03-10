@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# USAGE: python generate.py <NameOfDockerfile> <module1> <module2> python==3.6
 """Console script for generator."""
 import argparse
 from core.composer import Composer
