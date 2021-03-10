@@ -7,9 +7,9 @@ from imutils import paths
 import config
 importlib.reload(config)
 
-frame_rate = 2 #save every X frames
+frame_rate = 3 #save every X frames
 
-attempt = "cv2_2_length"
+attempt = "cv2_3"
 dataset = "val_set_SUBSET"
 INPUT_DATASET = os.path.sep.join([config.DATA_PATH, dataset])
 print(INPUT_DATASET)
