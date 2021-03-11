@@ -10,10 +10,10 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 |   |
 │   ├── images
 |   |   |
-|   |   ├── val_set
+|   |   ├── val
 |   |   |    ├── signer1_sample1_136_001.png
 |   |   |    └── ...
-|   |   └── train_set
+|   |   └── train
 |   |        ├── signer1_sample2_100_001.png
 |   |        └── ...
 │   └── labels
