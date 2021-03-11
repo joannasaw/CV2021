@@ -7,9 +7,7 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 │   └── pipeline.py
 |
 ├── DATA (will be ignored)
-|   |
 │   ├── images
-|   |   |
 |   |   ├── val
 |   |   |    ├── signer1_sample1_136_001.png
 |   |   |    └── ...
