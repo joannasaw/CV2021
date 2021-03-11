@@ -5,11 +5,21 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 │   ├── config.py
 │   ├── models.py
 │   └── pipeline.py
+|
 ├── DATA (will be ignored)
-│   ├── train
-│   ├── train_labels.csv
-│   └── ...
-│
+|   |
+│   ├── images
+|   |   |
+|   |   ├── val
+|   |   |    ├── signer1_sample1_136_001.png
+|   |   |    └── ...
+|   |   └── train
+|   |        ├── signer1_sample2_100_001.png
+|   |        └── ...
+│   └── labels
+|       ├── train_labels.csv
+|       └── val_labels.csv
+|
 ├── .gitignore
 └── README.md
 ```
