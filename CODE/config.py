@@ -1,61 +1,57 @@
 import os
-<<<<<<< HEAD:CV2021/config.py
-
-# init the path to the original input dataset
-ORIG_INPUT_DATASET = "videos" 
-
-# init the base path to the *new* directory containing images
-BASE_IMAGES_PATH = "images"
-BASE_LABELS_PATH = "labels"
-=======
 from pathlib import Path
-# initilaize the path to the original input dataset
-ORIG_INPUT_DATASET = ""
 
-# initialize the base path to the *new* directory that will contain
-# our images after computing the training and testing split
+# init the base path to the *new* directory 
 BASE_PATH = ""
 dir_path = os.path.dirname(os.path.realpath(__file__))
 BASE_PATH = str(Path(dir_path).parents[0])
 
-# initialize DATA directory
+# init DATA directory
 DATA_PATH = os.path.sep.join([BASE_PATH, "DATA"])
->>>>>>> 5165f08f22a9b80e7958946a45cc548b1ced36c8:CODE/config.py
 
-# derive the training, validation, and testing directories
-TRAIN_PATH = os.path.sep.join([BASE_IMAGES_PATH, ""])
-VAL_PATH = os.path.sep.join([BASE_IMAGES_PATH, "val_set"])
-TEST_PATH = os.path.sep.join([BASE_IMAGES_PATH, ""])
+# derive the raw videos directory
+TRAIN_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/train"])
+VAL_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/val"])
 
-TRAIN_LABELS = os.path.sep.join([BASE_LABELS_PATH, ""])
-VAL_LABELS = os.path.sep.join([BASE_LABELS_PATH, "val_labels.csv"])
-TEST_LABELS = os.path.sep.join([BASE_LABELS_PATH, ""])
+# derive the images directory
+TRAIN_IMGS_PATH = os.path.sep.join([DATA_PATH, "images/train"])
+VAL_IMGS_PATH = os.path.sep.join([DATA_PATH, "images/val"])
 
-# define the amount of data that will be used training
-TRAIN_SPLIT = 0.9
-# the amount of validation data will be a percentage of training data
-VAL_SPLIT = 0.05
-# define the names of the classes
-CLASSES = [""]
-NUM_CLASSES = 226
+# derive the labels directory
+TRAIN_LABELS = os.path.sep.join([DATA_PATH, "labels/train_labels.csv"])
+VAL_LABELS = os.path.sep.join([DATA_PATH, "labels/val_labels.csv"])
+
+CLASSES = [136, 130, 139, 222, 31, 60, 100, 168, 54, 225, 142, 170, 29, \
+    118, 111, 48, 134, 43, 94, 86, 22, 38, 73, 32, 137, 149, 218, 77, 17, \
+    18, 221, 146, 143, 220, 50, 34, 211, 27, 51, 197, 40, 175, 164, 208, 209, \
+    72, 123, 36, 200, 158, 1, 176, 194, 90, 162, 128, 104, 150, 15, 3, 179, 156, \
+    64, 106, 215, 191, 12, 112, 67, 216, 116, 20, 28, 46, 55, 140, 107, 202, 113, \
+    223, 181, 110, 152, 103, 4, 63, 186, 203, 212, 119, 21, 65, 30, 214, 174, 85, \
+    153, 75, 177, 184, 127, 114, 62, 165, 56, 166, 8, 23, 122, 180, 147, 101, 206, \
+    121, 148, 68, 219, 79, 141, 144, 198, 2, 83, 131, 161, 66, 57, 70, 124, 74, 117, \
+    99, 25, 91, 193, 185, 49, 37, 61, 11, 52, 81, 192, 44, 47, 97, 78, 89, 173, 87, \
+    196, 195, 14, 69, 172, 129, 187, 205, 135, 183, 163, 16, 10, 125, 84, 41, 0, 102, \
+    5, 71, 199, 58, 24, 108, 217, 13, 93, 189, 167, 182, 178, 115, 159, 105, 190, 145, \
+    126, 39, 210, 109, 154, 35, 204, 42, 213, 207, 9, 133, 82, 120, 45, 53, 96, 26, 19, \
+    80, 224, 138, 155, 7, 98, 132, 188, 59, 201, 33, 171, 88, 151, 76, 169, 157, 92, 160, 95, 6]
+
+# num of classes
+NUM_CLASSES = len(CLASSES)
 
 # initialize the with, height and no. of channels
-WIDTH = 16
-HEIGHT = 16
+WIDTH = 256
+HEIGHT = 256
 DEPTH = 3
 
 # initialize the number of epochs to train for
-# initial learning rate and batch size
-WARMUP_EPOCHS = 20
-FINETUNE_EPOCHS = 10
-INIT_LR = 1e-3
+# initial learning rate, batch size, finetuning epochs
 BS = 32
+EPOCHS = 20
+INIT_LR = 1e-3
+FINETUNE_EPOCHS = 10
 
 # path to output trained autoencoder
 MODEL_PATH = "outputs/model.h5"
-# path to output plot file
-WARMUP_PLOT_PATH = "outputs/head_training.png"
-UNFROZEN_PLOT_PATH = "outputs/fine_tuned.png"
 
 # path to tensorboard logs
 TENSORBOARD_TRAIN_WRITER = 'output/logs/train/'

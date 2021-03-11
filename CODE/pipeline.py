@@ -90,9 +90,6 @@ def prepare(ds, shuffle=False, augment=False):
     if shuffle:
         ds = ds.shuffle(1024)
 
-    # # batch all datasets
-    # ds = ds.batch(config.BS)
-
     # use data augmentation only on the training set
     if augment:
         ds = ds.map(lambda x, y: (aug(x, training=True), y), 
@@ -116,7 +113,7 @@ for batch in train_dataset.take(1):
 ############################################################################
 
 # init model object
-model = CustomConvNet(num_classes=len(config.CLASSES))
+model = CustomConvNet(num_classes=len(config.NUM_CLASSES))
 model.build_graph(raw_input).summary()
 
 # init optimizer
@@ -199,7 +196,7 @@ def test_step(step, x, y):
 # 5. Outside this scope, retrieve the gradients of the weights w.r.t loss
 # 6. Next, use the optimizer to update the weights based on the gradients
 
-for epoch in range(epochs):
+for epoch in range(config.EPOCHS):
     
     t = time.time()
 
