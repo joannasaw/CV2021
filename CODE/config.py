@@ -1,18 +1,10 @@
 import os
-<<<<<<< HEAD:CV2021/config.py
+from pathlib import Path
 
 # init the path to the original input dataset
-ORIG_INPUT_DATASET = "videos" 
-
-# init the base path to the *new* directory containing images
-BASE_IMAGES_PATH = "images"
-BASE_LABELS_PATH = "labels"
-=======
-from pathlib import Path
-# initilaize the path to the original input dataset
 ORIG_INPUT_DATASET = ""
 
-# initialize the base path to the *new* directory that will contain
+# init the base path to the *new* directory that will contain
 # our images after computing the training and testing split
 BASE_PATH = ""
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -20,7 +12,6 @@ BASE_PATH = str(Path(dir_path).parents[0])
 
 # initialize DATA directory
 DATA_PATH = os.path.sep.join([BASE_PATH, "DATA"])
->>>>>>> 5165f08f22a9b80e7958946a45cc548b1ced36c8:CODE/config.py
 
 # derive the training, validation, and testing directories
 TRAIN_PATH = os.path.sep.join([BASE_IMAGES_PATH, ""])
