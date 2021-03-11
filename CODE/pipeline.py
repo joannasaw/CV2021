@@ -113,7 +113,7 @@ for batch in train_dataset.take(1):
 ############################################################################
 
 # init model object
-model = CustomConvNet(num_classes=len(config.NUM_CLASSES))
+model = CustomConvNet(num_classes=config.NUM_CLASSES)
 model.build_graph(raw_input).summary()
 
 # init optimizer
