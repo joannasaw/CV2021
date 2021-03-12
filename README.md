@@ -9,15 +9,25 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 ├── DATA (will be ignored)
 │   ├── images
 |   |   ├── val
-|   |   |    ├── signer1_sample1_136_001.png
-|   |   |    └── ...
+|   |   |   ├── signer1_sample1
+|   |   |   |   ├── signer1_sample1_136_01.png
+|   |   |   |   └── ...
+|   |   |   └── ...
 |   |   └── train
-|   |        ├── signer1_sample2_100_001.png
-|   |        └── ...
-│   └── labels
-|       ├── train_labels.csv
-|       └── val_labels.csv
-|
+|   |       ├── signer1_sample2 
+|   |       |   ├── signer1_sample2_100_01.png
+|   |       |   └── ...
+|   |       └── ...
+│   ├── labels
+|   |   ├── train_labels.csv
+|   |   └── val_labels.csv
+|   └── videos
+|       ├── val
+|       |   ├── signer1_sample1_color.mp4
+|       |   └── ...
+|       └── train
+|           ├── signer1_sample2_color.mp4
+|           └── ...
 ├── .gitignore
 └── README.md
 ```
