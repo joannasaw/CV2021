@@ -21,37 +21,72 @@ def parse_image(filepath):
     image = cv2.imread(filepath)
     return image, label
 
-valPaths = list(paths.list_images(config.VAL_PATH))
+
+# get list of subdirectories for training and validation datasets ie. [signer1_sample1, signer1_sample2, ...]
+val_imgs_subdirs = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
+train_imgs_subdirs = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
+
+
+# loop thru no. of videos in validation set
 x_val, y_val = [], []
-for path in valPaths:
-    img, label = parse_image(path)
-    x_val.append(img)
-    y_val.append(label)
+for _, val_subdir in enumerate(val_imgs_subdirs):
+
+    valPaths = list(paths.list_images(val_subdir))
+    
+    x_vid_val, y_vid_val = [], []
+    for path in valPaths:
+        img, label = parse_image(path)
+        x_vid_val.append(img)
+        y_vid_val.append(label)
+
+    x_vid_arr = np.array(x_vid_val, dtype='float32')
+    res = np.zeros((config.FRAMES_PADDED, x_vid_arr.shape[1], x_vid_arr.shape[2], x_vid_arr.shape[3]))
+    res[:x_vid_arr.shape[0], :x_vid_arr.shape[1], :x_vid_arr.shape[2], :x_vid_arr.shape[3]] = x_vid_arr
+    
+    x_val.append(res) 
+    y_val.append([y_vid_val[0]])
+
 x_val = np.array(x_val, dtype='float32')
 y_val = np.array(y_val)
-print(x_val.shape, y_val.shape)
+#print(x_val.shape, y_val.shape)
 
-# trainPaths = list(paths.list_images(config.TRAIN_PATH))
-# x_train, y_train = [], []
-# for path in trainPaths:
-#     img, label = parse_image(path)
-#     x_train.append(img)
-#     y_train.append(label)
-# x_train = np.array(x_train, dtype='float32')
-# y_train = np.array(y_train)
-# print(x_train.shape, y_train.shape)
+
+# loop thru no. of videos in training set
+x_train, y_train = [], []
+for _, train_subdir in enumerate(train_imgs_subdirs):
+
+    trainPaths = list(paths.list_images(train_subdir))
+    
+    x_vid_train, y_vid_train = [], []
+    for path in trainPaths:
+        img, label = parse_image(path)
+        x_vid_train.append(img)
+        y_vid_train.append(label)
+
+    x_vid_arr = np.array(x_vid_train, dtype='float32')
+    res = np.zeros((config.FRAMES_PADDED, x_vid_arr.shape[1], x_vid_arr.shape[2], x_vid_arr.shape[3]))
+    res[:x_vid_arr.shape[0], :x_vid_arr.shape[1], :x_vid_arr.shape[2], :x_vid_arr.shape[3]] = x_vid_arr
+    
+    x_train.append(res) 
+    y_train.append([y_vid_train[0]])
+
+x_train = np.array(x_train, dtype='float32')
+y_train = np.array(y_train)
+#print(x_train.shape, y_train.shape)
 
 
 # convert the class vectors (integers from 0 to num_classes)- both train & val - to a binary class matrix 
-# y_train = tf.keras.utils.to_categorical(y_train, num_classes=config.NUM_CLASSES)
+y_train = tf.keras.utils.to_categorical(y_train, num_classes=config.NUM_CLASSES)
 y_val = tf.keras.utils.to_categorical(y_val, num_classes=config.NUM_CLASSES)
+#print(y_val.shape)
+print(y_train.shape)
 
 
 # Prepare the training dataset (separate elements of the input tensor for efficient input pipelines)
-# train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-# train_dataset = train_dataset.shuffle(buffer_size=1024).batch(config.BS)
-# for train_batch in train_dataset.take(1):
-#     print("x_train batch shape: ", train_batch[0].shape, "y_train batch shape: ", train_batch[1].shape)
+train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+train_dataset = train_dataset.shuffle(buffer_size=1024).batch(config.BS)
+for train_batch in train_dataset.take(1):
+   print("x_train batch shape: ", train_batch[0].shape, "y_train batch shape: ", train_batch[1].shape)
 
 
 # Prepare the validation dataset
@@ -101,7 +136,6 @@ def prepare(ds, shuffle=False, augment=False):
 
 train_dataset = prepare(train_dataset, shuffle=True, augment=True)
 val_dataset = prepare(val_dataset)
-test_dataset = prepare(test_dataset)
 
 # check shapes
 for batch in train_dataset.take(1):

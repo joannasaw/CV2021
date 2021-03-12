@@ -10,8 +10,8 @@ BASE_PATH = str(Path(dir_path).parents[0])
 DATA_PATH = os.path.sep.join([BASE_PATH, "DATA"])
 
 # derive the raw videos directory
-TRAIN_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/train"])
-VAL_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/val"])
+TRAIN_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/train_SUBSET"])
+VAL_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/val_SUBSET"])
 
 # derive the images directory
 TRAIN_IMGS_PATH = os.path.sep.join([DATA_PATH, "images/train"])
@@ -37,6 +37,13 @@ CLASSES = [136, 130, 139, 222, 31, 60, 100, 168, 54, 225, 142, 170, 29, \
 
 # num of classes
 NUM_CLASSES = len(CLASSES)
+
+# frames per video after padding
+FRAMES_PADDED = 40
+
+FPS = 10
+VID_NUM_PADDED = 2
+OUTPUT_FILE_TYPE = "png"
 
 # initialize the with, height and no. of channels
 WIDTH = 256
