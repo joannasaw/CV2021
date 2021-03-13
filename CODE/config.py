@@ -10,8 +10,8 @@ BASE_PATH = str(Path(dir_path).parents[0])
 DATA_PATH = os.path.sep.join([BASE_PATH, "DATA"])
 
 # derive the raw videos directory
-TRAIN_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/train_SUBSET"])
-VAL_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/val_SUBSET"])
+TRAIN_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/train"])
+VAL_VIDS_PATH = os.path.sep.join([DATA_PATH, "videos/val"])
 
 # derive the images directory
 TRAIN_IMGS_PATH = os.path.sep.join([DATA_PATH, "images/train"])
