@@ -2,12 +2,12 @@
 This README.md documents the files and work for 50.035 Computer Vision taken in Spring 2021.
 ```
 ├── CODE
-|   ├── extract_frames.py
-|   ├── video_to_frames.py
 |   ├── __init__.py
-│   ├── config.py
+|   ├── config.py
+|   ├── extract_frames.py
 │   ├── models.py
-│   └── pipeline.py
+│   ├── pipeline.py
+│   └── video_to_frames.py
 |
 ├── DATA (will be ignored)
 │   ├── images
