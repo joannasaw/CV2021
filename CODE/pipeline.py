@@ -1,9 +1,10 @@
 import os
 import cv2
+import glob
+import time
 import sklearn
 import numpy as np
 import seaborn as sns
-from imutils import paths
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
@@ -12,134 +13,137 @@ from models import *
 import config
 
 ############################################################################
-#                          Data Loading                                    #
+#                          Data Preparation                                #
 ############################################################################
 
 def parse_image(filepath):
-    file_name = filepath.split(os.path.sep)[-1]
-    label = int(file_name.split('_')[-2])
+    # retrieve label and image data
+    label = int(filepath.split(os.path.sep)[-1].split('_')[-2])
     image = cv2.imread(filepath)
     return image, label
 
 
-# get list of subdirectories for training and validation datasets ie. [signer1_sample1, signer1_sample2, ...]
-val_imgs_subdirs = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
-train_imgs_subdirs = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
-
-
-# loop thru no. of videos in validation set
-x_val, y_val = [], []
-for _, val_subdir in enumerate(val_imgs_subdirs):
-
-    valPaths = list(paths.list_images(val_subdir))
-    
-    x_vid_val, y_vid_val = [], []
-    for path in valPaths:
-        img, label = parse_image(path)
-        x_vid_val.append(img)
-        y_vid_val.append(label)
-
-    x_vid_arr = np.array(x_vid_val, dtype='float32')
-    res = np.zeros((config.FRAMES_PADDED, x_vid_arr.shape[1], x_vid_arr.shape[2], x_vid_arr.shape[3]))
-    res[:x_vid_arr.shape[0], :x_vid_arr.shape[1], :x_vid_arr.shape[2], :x_vid_arr.shape[3]] = x_vid_arr
-    
-    x_val.append(res) 
-    y_val.append([y_vid_val[0]])
-
-x_val = np.array(x_val, dtype='float32')
-y_val = np.array(y_val)
-#print(x_val.shape, y_val.shape)
-
-
-# loop thru no. of videos in training set
-x_train, y_train = [], []
-for _, train_subdir in enumerate(train_imgs_subdirs):
-
-    trainPaths = list(paths.list_images(train_subdir))
-    
-    x_vid_train, y_vid_train = [], []
-    for path in trainPaths:
-        img, label = parse_image(path)
-        x_vid_train.append(img)
-        y_vid_train.append(label)
-
-    x_vid_arr = np.array(x_vid_train, dtype='float32')
-    res = np.zeros((config.FRAMES_PADDED, x_vid_arr.shape[1], x_vid_arr.shape[2], x_vid_arr.shape[3]))
-    res[:x_vid_arr.shape[0], :x_vid_arr.shape[1], :x_vid_arr.shape[2], :x_vid_arr.shape[3]] = x_vid_arr
-    
-    x_train.append(res) 
-    y_train.append([y_vid_train[0]])
-
-x_train = np.array(x_train, dtype='float32')
-y_train = np.array(y_train)
-#print(x_train.shape, y_train.shape)
-
-
-# convert the class vectors (integers from 0 to num_classes)- both train & val - to a binary class matrix 
-y_train = tf.keras.utils.to_categorical(y_train, num_classes=config.NUM_CLASSES)
-y_val = tf.keras.utils.to_categorical(y_val, num_classes=config.NUM_CLASSES)
-#print(y_val.shape)
-print(y_train.shape)
-
-
-# Prepare the training dataset (separate elements of the input tensor for efficient input pipelines)
-train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-train_dataset = train_dataset.shuffle(buffer_size=1024).batch(config.BS)
-for train_batch in train_dataset.take(1):
-   print("x_train batch shape: ", train_batch[0].shape, "y_train batch shape: ", train_batch[1].shape)
-
-
-# Prepare the validation dataset
-val_dataset = tf.data.Dataset.from_tensor_slices((x_val, y_val))
-val_dataset = val_dataset.batch(config.BS)
-for val_batch in val_dataset.take(1):
-    print("x_val batch shape: ", val_batch[0].shape, "y_val batch shape: ", val_batch[1].shape)
-
-
-############################################################################
-#                          Data Augmentation                               #
-############################################################################
-
-IMG_SIZE = config.WIDTH
-# construct resizing, rescaling layers
-resize_and_rescale = tf.keras.Sequential([
-  tf.keras.layers.experimental.preprocessing.Resizing(IMG_SIZE, IMG_SIZE),
-  # rescale tensors to [0,1]
-  tf.keras.layers.experimental.preprocessing.Rescaling(1./255)
-])
-
-# construct data augmentation layers
-aug = tf.keras.Sequential([
-  tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-  tf.keras.layers.experimental.preprocessing.RandomRotation(0.2),
-])
-
-AUTOTUNE = tf.data.AUTOTUNE
-
-# apply preprocessing layer to datasets
-def prepare(ds, shuffle=False, augment=False):
-    # Resize and rescale all datasets
-    ds = ds.map(lambda x, y: (resize_and_rescale(x), y), 
-                num_parallel_calls=AUTOTUNE)
-
-    if shuffle:
-        ds = ds.shuffle(1024)
-
-    # use data augmentation only on the training set
+def preprocess(img, seed=(1,2), height=256, width=256, augment=False):
+    # apply resizing & rescaling
+    resize_and_rescale = tf.keras.Sequential([
+      tf.keras.layers.experimental.preprocessing.Resizing(height, width),
+      tf.keras.layers.experimental.preprocessing.Rescaling(1./255)])
+    img = resize_and_rescale(img)
+    # apply data augmentation only to training set
     if augment:
-        ds = ds.map(lambda x, y: (aug(x, training=True), y), 
-                    num_parallel_calls=AUTOTUNE)
+        img = tf.image.stateless_random_brightness(img, max_delta=0.2, seed=seed)
+        img = tf.image.stateless_random_contrast(img, lower=0.2, upper=0.5, seed=seed)
+        img = tf.image.stateless_random_flip_left_right(img, seed=seed)
+        img = tf.image.stateless_random_hue(img, max_delta=0.2, seed=seed)
+        img = tf.image.stateless_random_saturation(img, lower=0.5, upper=0.8, seed=seed)
+    return img
 
-    # use buffered prefecting on all datasets
-    return ds.prefetch(buffer_size=AUTOTUNE)
+
+def image_gen(subdir_ls, batch_size=1, augment=False):
+    while True:
+
+        # select a no. of subfolders (no. of video samples) for the batch
+        batch_subdir_ls = np.random.choice(a=subdir_ls, size=batch_size)
+
+        batch_x, batch_y = [], []
+        # loop thru each subfolder (video sample)
+        for _, subdir in enumerate(batch_subdir_ls):
+            # retrieve list of image filepaths for a video sample 
+            imgPaths = [f for f in glob.glob(subdir + "**/*")]
+
+            x_vid, y_vid = [], []
+            # loop thru the filepaths to obtain the img data and label
+            for path in imgPaths:
+                img, label = parse_image(path)
+                x_vid.append(img)
+                y_vid.append(label)    
+
+        ###################################
+        #     Data Augmentation START     #
+        ###################################
+            x_vid_arr = np.array(x_vid, dtype='float32')
+            x_vid_arr = preprocess(x_vid_arr, 
+                                seed=(1,2), 
+                                height=config.HEIGHT, 
+                                width=config.WIDTH, 
+                                augment=augment)
+        ###################################
+        #     Data Augmentation END       #
+        ###################################
 
 
-train_dataset = prepare(train_dataset, shuffle=True, augment=True)
-val_dataset = prepare(val_dataset)
+        #################################
+        #          WITH Padding         #
+        #################################
+            # pad the array to follow a predefined no. of frames per video
+            # image tensors of shape (1, 30, 512, 512, 3) means
+            # batch size/no. of videos: 1
+            # no. of frames per video AFTER padding: 30 
+            # frame height: 512
+            # frame width: 512
+            # no. of channels: 3
+
+            # res = np.zeros((config.FRAMES_PADDED, 
+            #                 x_vid_arr.shape[1], 
+            #                 x_vid_arr.shape[2], 
+            #                 x_vid_arr.shape[3]))
+
+            # res[:x_vid_arr.shape[0], 
+            #     :x_vid_arr.shape[1], 
+            #     :x_vid_arr.shape[2], 
+            #     :x_vid_arr.shape[3]] = x_vid_arr
+
+            # batch_x.append(res) 
+            # batch_y.append([y_vid[0]])      #for shape: (1, 226)
+            # OR
+            # batch_y.append(y_vid)           #for shape: (N, 226) where N is no. of frames
+
+        # # create the batch img array and batch labels array 
+        # batch_x = np.array(batch_x, dtype='float32')
+        # batch_y = np.array(batch_y)
+        #################################
+        #           WITH Padding        #
+        #################################
+
+
+        #################################
+        #            NO Padding         #
+        #################################
+        batch_x = x_vid_arr
+        batch_y = np.array(y_vid)
+        # OR
+        #batch_y = np.array([y_vid[0]])
+        #################################
+        #            NO Padding         #
+        #################################
+
+        # convert class vectors (integers from 0 to num_classes) into one-hot encoded class matrix 
+        batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=config.NUM_CLASSES)
+            
+        #return (batch_x, batch_y)
+        yield(batch_x, batch_y)
+
+
+# get list of subdirectories for training and validation datasets ie. [signer1_sample1, signer1_sample2, ...]
+print("[INFO] Retrieving lists of subdirectory names for training & validation...")
+val_subdir_ls = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
+train_subdir_ls = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
+print("[INFO] No. of train samples: ", len(train_subdir_ls), 
+      "No. of val samples: ", len(val_subdir_ls))
+
+
+print("[INFO] Preparing training & validation generators...")
+val_dataset = image_gen(val_subdir_ls, config.BS)
+train_dataset = image_gen(train_subdir_ls, config.BS, augment=True)
+         
 
 # check shapes
-for batch in train_dataset.take(1):
+for batch in train_dataset:
     print("x_batch_train shape: ", batch[0].shape, "y_batch_train shape: ", batch[1].shape)
+    break
+for batch in val_dataset:
+    print("x_batch_val shape: ", batch[0].shape, "y_batch_val shape: ", batch[1].shape)
+    break
 
 
 ############################################################################
@@ -147,8 +151,8 @@ for batch in train_dataset.take(1):
 ############################################################################
 
 # init model object
-model = CustomConvNet(num_classes=config.NUM_CLASSES)
-model.build_graph(raw_input).summary()
+model = CustomCnnModule(num_classes=config.NUM_CLASSES)
+model.build_graph(raw_shape=(256,256,3)).summary()
 
 # init optimizer
 optimizer = tf.keras.optimizers.Adam()
@@ -169,8 +173,8 @@ train_writer = tf.summary.create_file_writer(config.TENSORBOARD_TRAIN_WRITER)
 test_writer  = tf.summary.create_file_writer(config.TENSORBOARD_VAL_WRITER)
 
 
-# '@tf.function' decorator compiles a function into a callable tensorflow graph
-@tf.function
+# # '@tf.function' decorator compiles a function into a callable tensorflow graph
+# @tf.function
 def train_step(step, x, y):
     '''
     input: x, y <- batches
@@ -199,7 +203,7 @@ def train_step(step, x, y):
     return train_loss_value
 
 
-@tf.function
+# @tf.function
 def test_step(step, x, y):
     '''
     input: x, y <- batches 
@@ -230,23 +234,26 @@ def test_step(step, x, y):
 # 5. Outside this scope, retrieve the gradients of the weights w.r.t loss
 # 6. Next, use the optimizer to update the weights based on the gradients
 
+print("[INFO] Training model...")
 for epoch in range(config.EPOCHS):
     
     t = time.time()
 
     # iterate over the batches of the train dataset
-    for train_batch_step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
+    for train_batch_step, (batch_x, batch_y) in enumerate(train_dataset):
 
         train_batch_step = tf.convert_to_tensor(train_batch_step, dtype=tf.int64)
-        train_loss_value = train_step(train_batch_step, x_batch_train, y_batch_train)
+        train_loss_value = train_step(train_batch_step, batch_x, batch_y)
 
     # evaluation on validation set 
     # run a validation loop at the end of each epoch
-    for test_batch_step, (x_batch_val, y_batch_val) in enumerate(val_dataset):
+    for test_batch_step, (batch_x, batch_y) in enumerate(val_dataset):
+
         test_batch_step = tf.convert_to_tensor(test_batch_step, dtype=tf.int64)
-        val_loss_value = test_step(test_batch_step, x_batch_val, y_batch_val)
+        val_loss_value = test_step(test_batch_step, batch_x, batch_y)
 
     template = 'ETA: {} - epoch: {} loss: {}  acc: {} val loss: {} val acc: {}\n'
+
     print(template.format(
         round((time.time() - t)/60, 2), epoch + 1,
         train_loss_value, float(train_acc_metric.result()),
@@ -345,13 +352,13 @@ metric = tf.keras.metrics.CategoricalAccuracy()
 
 base_model.compile(loss=loss, optimizer=opt, metrics=metric)
 
-# # train the model again, fine-tuning the final CONV layers
-# H = base_model.fit(,
-# 	steps_per_epoch=,
-# 	validation_data=,
-# 	validation_steps=,
-# 	epochs=)
+# train the model again, fine-tuning the final CONV layers
+H = base_model.fit(,
+	steps_per_epoch=,
+	validation_data=,
+	validation_steps=,
+	epochs=)
 
-# # serialize the model to disk using hdf5
-# print("serializing network...")
-# model.save(config.MODEL_PATH, save_format="h5")
+# serialize the model to disk using hdf5
+print("serializing network...")
+model.save(config.MODEL_PATH, save_format="h5")
