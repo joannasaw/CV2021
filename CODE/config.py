@@ -39,20 +39,20 @@ CLASSES = [136, 130, 139, 222, 31, 60, 100, 168, 54, 225, 142, 170, 29, \
 NUM_CLASSES = len(CLASSES)
 
 # frames per video after padding
-FRAMES_PADDED = 40
+FRAMES_PADDED = 30
 
 FPS = 10
-VID_NUM_PADDED = 2
+VID_NUM_PADDED = 3
 OUTPUT_FILE_TYPE = "png"
 
-# initialize the with, height and no. of channels
+# initialize the width, height and no. of channels
 WIDTH = 256
 HEIGHT = 256
 DEPTH = 3
 
 # initialize the number of epochs to train for
 # initial learning rate, batch size, finetuning epochs
-BS = 32
+BS = 1
 EPOCHS = 20
 INIT_LR = 1e-3
 FINETUNE_EPOCHS = 10
