@@ -1,14 +1,14 @@
 import os
+import glob
 import pandas as pd
-from imutils import paths
 
 # import config file for params
 import config
 
 # CHANGE parameters here
-INPUT_DATASETS = [config.VAL_VIDS_PATH]
-OUTPUT_DATASETS = [config.VAL_IMGS_PATH]
-LABELS_DATASETS = [config.VAL_LABELS]
+INPUT_DATASETS = [config.TRAIN_VIDS_PATH]
+OUTPUT_DATASETS = [config.TRAIN_IMGS_PATH]
+LABELS_DATASETS = [config.TRAIN_LABELS]
 FPS = config.FPS
 NUM_PADDED = config.VID_NUM_PADDED
 OUTPUT_FILE_TYPE = config.OUTPUT_FILE_TYPE
@@ -24,14 +24,14 @@ for vid_dir, img_dir, labels_file in zip(INPUT_DATASETS, OUTPUT_DATASETS, LABELS
     df = pd.read_csv(labels_file, usecols=[0,1], names=['filename','label'])
 
     # list all video paths in videos dataset directory
-    vidPaths = list(paths.list_files(vid_dir))
+    vidPaths = [f for f in glob.glob(vid_dir + "**/*")]
 
     for p in vidPaths:
 
         file_name = p.split(os.path.sep)[-1].split("_color")[-2]
         #print(file_name)
-        
-        # for every video, make a new directory to store all frames for that video 
+
+        # for every video, make a new directory to store all frames for that video
         vid_frames_dir = os.path.sep.join([img_dir, file_name])
         if not os.path.exists(vid_frames_dir):
             os.makedirs(vid_frames_dir)
@@ -43,4 +43,4 @@ for vid_dir, img_dir, labels_file in zip(INPUT_DATASETS, OUTPUT_DATASETS, LABELS
 
         # perform system call to extract frames from each video
         os.system("ffmpeg -i "+str(p)+" -vf fps="+str(FPS)+" "+str(vid_frames_dir)+"/"+str(new_filename)+"_%0"+str(NUM_PADDED)+"d.png")
-
+        # eg. DATA/images/train/signer1_sample1/signer1_sample1_136_001.png
