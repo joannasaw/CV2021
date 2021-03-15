@@ -70,8 +70,8 @@ class DownsampleModule(tf.keras.layers.Layer):
 
 
 class VGGCnnModule(tf.keras.Model):
-    def __init__(self, input_shape=(224,224,3)):
-        super(CnnModule, self).__init__()
+    def __init__(self, input_shape=(256,256,3)):
+        super(VGGCnnModule, self).__init__()
 
         # construct base model
         self.base_model = tf.keras.applications.VGG16(
@@ -101,7 +101,7 @@ class VGGCnnModule(tf.keras.Model):
 
 class CustomCnnModule(tf.keras.Model):
     def __init__(self, num_classes):
-        super(CustomConvNet, self).__init__()
+        super(CustomCnnModule, self).__init__()
 
         # the first conv module
         self.conv_block = ConvModule(96, (3,3), (1,1))
@@ -161,4 +161,3 @@ class CustomCnnModule(tf.keras.Model):
         # helper function to plot model summary information
         x = tf.keras.layers.Input(shape=raw_shape)
         return tf.keras.Model(inputs=[x], outputs=self.call(x))
-
