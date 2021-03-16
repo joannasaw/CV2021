@@ -69,9 +69,9 @@ class DownsampleModule(tf.keras.layers.Layer):
         return x
 
 
-class VGGCnnModule(tf.keras.Model):
-    def __init__(self, input_shape=(256,256,3)):
-        super(VGGCnnModule, self).__init__()
+class VGGModule(tf.keras.layers.Layer):
+    def __init__(self, input_shape):
+        super(VGGModule, self).__init__()
 
         # construct base model
         self.base_model = tf.keras.applications.VGG16(
@@ -91,14 +91,19 @@ class VGGCnnModule(tf.keras.Model):
             layer.trainable = True
         #for layer in self.base_model.layers:
         #    print("{}: {}".format(layer, layer.trainable))
+        
+        self.vgg_module = tf.keras.Model(inputs=self.base_model.input,
+                                         outputs=self.base_model.get_layer('block5_conv3').output)
     
     def call(self, input_tensor, training=False):
-        x = self.base_model(input_tensor)
-        #x = x.layers[-2].output
-        x = tf.keras.Model(inputs=x.inputs, outputs=x.layers[-2].output)
-        return x
-
-
+        return self.vgg_module(input_tensor, training=training) 
+    
+    def build_graph(self, raw_shape):
+        # helper function to plot model summary information
+        x = tf.keras.layers.Input(shape=raw_shape)
+        return tf.keras.Model(inputs=[x], outputs=self.call(x))
+    
+    
 class CustomCnnModule(tf.keras.Model):
     def __init__(self, num_classes):
         super(CustomCnnModule, self).__init__()
