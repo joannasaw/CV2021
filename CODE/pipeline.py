@@ -12,9 +12,9 @@ import tensorflow as tf
 from models import *
 import config
 
-############################################################################
-#                          Data Preparation                                #
-############################################################################
+# ############################################################################
+# #                          Data Preparation                                #
+# ############################################################################
 
 def parse_image(filepath):
     # retrieve label and image data
@@ -23,7 +23,7 @@ def parse_image(filepath):
     return image, label
 
 
-def preprocess(img, seed=(1,2), height=256, width=256, augment=False):
+def preprocess(img, height, width, seed=(1,2), augment=False):
     # apply resizing & rescaling
     resize_and_rescale = tf.keras.Sequential([
       tf.keras.layers.experimental.preprocessing.Resizing(height, width),
@@ -31,11 +31,10 @@ def preprocess(img, seed=(1,2), height=256, width=256, augment=False):
     img = resize_and_rescale(img)
     # apply data augmentation only to training set
     if augment:
-        img = tf.image.stateless_random_brightness(img, max_delta=0.2, seed=seed)
-        img = tf.image.stateless_random_contrast(img, lower=0.2, upper=0.5, seed=seed)
-        img = tf.image.stateless_random_flip_left_right(img, seed=seed)
-        img = tf.image.stateless_random_hue(img, max_delta=0.2, seed=seed)
-        img = tf.image.stateless_random_saturation(img, lower=0.5, upper=0.8, seed=seed)
+        img = tf.image.adjust_brightness(img, 0.4)
+        img = tf.image.adjust_contrast(img, 0.2)
+        img = tf.image.adjust_hue(img, 0.2)
+        img = tf.image.adjust_saturation(img, 2)
     return img
 
 
@@ -58,18 +57,18 @@ def image_gen(subdir_ls, batch_size=1, augment=False):
                 x_vid.append(img)
                 y_vid.append(label)    
 
-        ###################################
-        #     Data Augmentation START     #
-        ###################################
+            ###################################
+            #     Data Augmentation START     #
+            ###################################
             x_vid_arr = np.array(x_vid, dtype='float32')
-            x_vid_arr = preprocess(x_vid_arr, 
-                                seed=(1,2), 
+            x_vid_arr = preprocess(x_vid_arr,  
                                 height=config.HEIGHT, 
-                                width=config.WIDTH, 
+                                width=config.WIDTH,
+                                seed=(1,2),
                                 augment=augment)
-        ###################################
-        #     Data Augmentation END       #
-        ###################################
+            #################################
+            #     Data Augmentation END     #
+            #################################
 
 
         #################################
@@ -152,7 +151,10 @@ for batch in val_dataset:
 
 # init model object
 model = CustomCnnModule(num_classes=config.NUM_CLASSES)
-model.build_graph(raw_shape=(256,256,3)).summary()
+model.build_graph(raw_shape=(config.HEIGHT,config.WIDTH,config.DEPTH)).summary()
+
+# vgg_module = VGGModule(input_shape=(config.HEIGHT,config.WIDTH,config.DEPTH))
+# vgg_module.build_graph(raw_shape=(config.HEIGHT,config.WIDTH,config.DEPTH)).summary()
 
 # init optimizer
 optimizer = tf.keras.optimizers.Adam()
@@ -265,100 +267,100 @@ for epoch in range(config.EPOCHS):
     val_acc_metric.reset_states()
 
 
-############################################################################
-#                          Model Evaluation                                #
-############################################################################
+# ############################################################################
+# #                          Model Evaluation                                #
+# ############################################################################
 
-# Multiclass ROC AUC score #
-def multiclass_roc_auc_score(y_test, y_pred, average="macro"):
-    lb = sklearn.preprocessing.LabelBinarizer()
-    lb.fit(y_test)
-    y_test = lb.transform(y_test)
-    y_pred = lb.transform(y_pred)
-    return roc_auc_score(y_test, y_pred, average=average)
+# # Multiclass ROC AUC score #
+# def multiclass_roc_auc_score(y_test, y_pred, average="macro"):
+#     lb = sklearn.preprocessing.LabelBinarizer()
+#     lb.fit(y_test)
+#     y_test = lb.transform(y_test)
+#     y_pred = lb.transform(y_pred)
+#     return roc_auc_score(y_test, y_pred, average=average)
 
-# ROC AUC score #
-print("ROC AUC score: ", multiclass_roc_auc_score(y_test, preds.argmax(axis=1)))
+# # ROC AUC score #
+# print("ROC AUC score: ", multiclass_roc_auc_score(y_test, preds.argmax(axis=1)))
 
-# Classification report #
-print("evaluating network...")
-preds = model.predict(x_test, verbose=1)
-print(sklearn.metrics.classification_report(y_test.argmax(axis=1), 
-                                            preds.argmax(axis=1), 
-                                            target_names=config.CLASSES))
+# # Classification report #
+# print("evaluating network...")
+# preds = model.predict(x_test, verbose=1)
+# print(sklearn.metrics.classification_report(y_test.argmax(axis=1), 
+#                                             preds.argmax(axis=1), 
+#                                             target_names=config.CLASSES))
 
-# Confusion matrix #
-preds = model.predict(x_test, verbose=2)
-preds = np.argmax(preds, axis=1)
-cm = sklearn.metrics.confusion_matrix(np.argmax(y_test, axis=1), preds)
-cm = pd.DataFrame(cm, range(10),range(10))
-plt.figure(figsize = (10,10))
-sns.heatmap(cm, annot=True, annot_kws={"size": 12})
-plt.savefig(config.CONFUSION_MATRIX)
-
-
-############################################################################
-#                          Saving                                          #
-############################################################################
-
-# The key difference between HDF5 and SavedModel is that HDF5 uses object configs to save the model architecture, 
-# while SavedModel saves the execution graph. Thus, SavedModels are able to save custom objects like subclassed models and 
-# custom layers without requiring the orginal code
-model.save('net', save_format='tf')
-# A new folder 'net' will be created in the working directory: contains 'assets', 'saved_model.pb', 'variables'
-# The model architecture and training configuration, including the optimizer, losses, and metrics are stored in saved_model.pb
-# The weights are saved in the variables directory
-
-# OR
-
-# save only the trained weights
-model.save_weights('net.h5')
+# # Confusion matrix #
+# preds = model.predict(x_test, verbose=2)
+# preds = np.argmax(preds, axis=1)
+# cm = sklearn.metrics.confusion_matrix(np.argmax(y_test, axis=1), preds)
+# cm = pd.DataFrame(cm, range(10),range(10))
+# plt.figure(figsize = (10,10))
+# sns.heatmap(cm, annot=True, annot_kws={"size": 12})
+# plt.savefig(config.CONFUSION_MATRIX)
 
 
-############################################################################
-#                          Loading                                         #
-############################################################################
+# ############################################################################
+# #                          Saving                                          #
+# ############################################################################
 
-# When saving the model and its layers, the SavedModel format stores the class name, call function, losses, 
-# and weights (and the config, if implemented). The call function defines the computation graph of the model/layer. 
-# In the absence of the model/layer config, the call function is used to create a model that exists like the original model 
-# which can be trained, evaluated, and used for inference.
-new_model = tf.keras.models.load_model("net", compile=False)
+# # The key difference between HDF5 and SavedModel is that HDF5 uses object configs to save the model architecture, 
+# # while SavedModel saves the execution graph. Thus, SavedModels are able to save custom objects like subclassed models and 
+# # custom layers without requiring the orginal code
+# model.save('net', save_format='tf')
+# # A new folder 'net' will be created in the working directory: contains 'assets', 'saved_model.pb', 'variables'
+# # The model architecture and training configuration, including the optimizer, losses, and metrics are stored in saved_model.pb
+# # The weights are saved in the variables directory
 
-# OR
+# # OR
 
-# call the build method
-new_model = CustomConvNet() 
-new_model.build((x_train.shape))
-# reload the weights 
-new_model.load_weights('net.h5')
+# # save only the trained weights
+# model.save_weights('net.h5')
 
 
-############################################################################
-#                          Fine-tuning                                     #
-############################################################################
+# ############################################################################
+# #                          Loading                                         #
+# ############################################################################
 
-# init base_model
-base_model = VGGCnnModule(input_shape=(256,256,3))
+# # When saving the model and its layers, the SavedModel format stores the class name, call function, losses, 
+# # and weights (and the config, if implemented). The call function defines the computation graph of the model/layer. 
+# # In the absence of the model/layer config, the call function is used to create a model that exists like the original model 
+# # which can be trained, evaluated, and used for inference.
+# new_model = tf.keras.models.load_model("net", compile=False)
 
-# compile for the changes to the model to take affect
-print("compiling model...")
-loss = tf.keras.losses.CategoricalCrossentropy()
+# # OR
 
-opt = tf.keras.optimizers.Adam(lr=config.INIT_LR, 
-		                       decay=config.INIT_LR / config.FINETUNE_EPOCHS)
+# # call the build method
+# new_model = CustomConvNet() 
+# new_model.build((x_train.shape))
+# # reload the weights 
+# new_model.load_weights('net.h5')
 
-metric = tf.keras.metrics.CategoricalAccuracy()
 
-base_model.compile(loss=loss, optimizer=opt, metrics=metric)
+# ############################################################################
+# #                          Fine-tuning                                     #
+# ############################################################################
 
-# train the model again, fine-tuning the final CONV layers
-H = base_model.fit(,
-	steps_per_epoch=,
-	validation_data=,
-	validation_steps=,
-	epochs=)
+# # init base_model
+# base_model = VGGCnnModule(input_shape=(256,256,3))
 
-# serialize the model to disk using hdf5
-print("serializing network...")
-model.save(config.MODEL_PATH, save_format="h5")
+# # compile for the changes to the model to take affect
+# print("compiling model...")
+# loss = tf.keras.losses.CategoricalCrossentropy()
+
+# opt = tf.keras.optimizers.Adam(lr=config.INIT_LR, 
+# 		                       decay=config.INIT_LR / config.FINETUNE_EPOCHS)
+
+# metric = tf.keras.metrics.CategoricalAccuracy()
+
+# base_model.compile(loss=loss, optimizer=opt, metrics=metric)
+
+# # # train the model again, fine-tuning the final CONV layers
+# # H = base_model.fit(,
+# # 	steps_per_epoch=,
+# # 	validation_data=,
+# # 	validation_steps=,
+# # 	epochs=)
+
+# # # serialize the model to disk using hdf5
+# # print("serializing network...")
+# # model.save(config.MODEL_PATH, save_format="h5")
