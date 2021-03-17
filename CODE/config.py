@@ -53,7 +53,7 @@ DEPTH = 3
 # initialize the number of epochs to train for
 # initial learning rate, batch size, finetuning epochs
 BS = 1
-EPOCHS = 20
+EPOCHS = 50
 INIT_LR = 1e-3
 FINETUNE_EPOCHS = 10
 
