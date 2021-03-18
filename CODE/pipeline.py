@@ -138,8 +138,8 @@ print("[INFO] No. of train samples: ", len(train_subdir_ls),
 print("[INFO] Preparing training & validation generators...")
 val_dataset = image_gen(val_subdir_ls, config.BS)
 train_dataset = image_gen(train_subdir_ls, config.BS)
-
          
+
 # check shapes
 for batch in train_dataset:
     print("x_batch_train shape: ", batch[0].shape, "y_batch_train shape: ", batch[1].shape)
