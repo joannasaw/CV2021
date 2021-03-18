@@ -9,22 +9,16 @@ import tensorflow.keras.backend as K
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import LSTM, Flatten, Dense, LSTM, Bidirectional, Input, GlobalAveragePooling2D, Activation, TimeDistributed
 from attention import Attention
+from keras.utils.vis_utils import plot_model
 
 
 class FPMLayer(tf.keras.Model):
     def __init__(self):
         super(FPMLayer, self).__init__(name="fpm")
         self.conv1 = tf.keras.layers.Conv2D(kernel_size=(1,1),filters=128,activation='relu',padding="same")
-        print(self.conv1)
-
         self.conv2 = tf.keras.layers.Conv2D(kernel_size=(3,3),filters=128, activation='relu', padding="same")
-
         self.conv3 = tf.keras.layers.Conv2D(kernel_size=(3,3),filters=128, dilation_rate=2, activation='relu', padding="same")
-
         self.conv4 = tf.keras.layers.Conv2D(kernel_size=(3,3),filters=128, dilation_rate=4, activation='relu', padding="same")
-
-        #layer_out = tf.keras.layers.concatenate([conv1, conv2, conv3, conv4], axis=-1)
- 
 
     def call(self, inputs):
         print("called")
@@ -32,15 +26,14 @@ class FPMLayer(tf.keras.Model):
         b = self.conv2(inputs)
         c = self.conv3(inputs)
         d = self.conv4(inputs)
-
         return tf.keras.layers.concatenate([a, b, c, d], axis=-1)
 
     def compute_output_shape(self, input_shape):
         # You need to override this function if you want to use the subclassed model
         # as part of a functional-style model.
         # Otherwise, this method is optional.
-
         return tf.TensorShape([1, 16,16, 512])
+
     def Vis(self):
         plot_model(self, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
 
@@ -79,11 +72,9 @@ def VGG(data):
     print(data.shape)
     finalModel.add(TimeDistributed(model, input_shape=(None, 256,256, 3)))
     
-
     finalModel.add(TimeDistributed(FPMLayer()))
     print("Entire cnn done")
     print(finalModel.summary())    
-
 
     finalModel.add(
         TimeDistributed(
@@ -93,15 +84,12 @@ def VGG(data):
     finalModel.add(LSTM(512, activation='relu', return_sequences=True))
     # finalModel.add(Bidirectional(LSTM(512, activation='relu', return_sequences=True), input_shape=(1, None, 16, 16, 512)))
 
-
     # finalModel.add(Attention(512))
     
     finalModel.add(Dense(226, activation="softmax"))
 
     print(finalModel.summary())
-    #print("done")
     
-
     # timeDistributed_layer = TimeDistributed(model)(input_tensor)
     # my_time_model = Model( inputs = input_tensor, outputs = timeDistributed_layer )
     # my_time_model.summary()
