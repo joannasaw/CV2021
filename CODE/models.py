@@ -69,11 +69,11 @@ def VGG(data):
    
     finalModel = Sequential()
     #finalModel.add(Input(shape=(data.shape)))
-    print(data.shape)
+    #print(data.shape)
     finalModel.add(TimeDistributed(model, input_shape=(None, 256,256, 3)))
     
     finalModel.add(TimeDistributed(FPMLayer()))
-    print("Entire cnn done")
+    #print("Entire cnn done")
     print(finalModel.summary())    
 
     finalModel.add(
