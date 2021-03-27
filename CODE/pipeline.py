@@ -40,64 +40,69 @@ def preprocess(img, height, width, augment=False):
         img = tf.image.adjust_saturation(img, 2)
     return img
 
-
-def image_gen(subdir_ls, batch_size=1, augment=False):
-    while True:
-
-        # select a no. of subfolders (no. of video samples) for the batch
-        batch_subdir_ls = np.random.choice(a=subdir_ls, size=batch_size)
-
-        # loop thru each subfolder (video sample)
-        for _, subdir in enumerate(batch_subdir_ls):
-            # retrieve list of image filepaths for a video sample 
-            imgPaths = [f for f in glob.glob(subdir + "**/*")]
-
-            x_vid, y_vid = [], []
-            # loop thru the filepaths to obtain the img data and label
-            for path in imgPaths:
-                img, label = parse_image(path)
-                x_vid.append(img)
-                y_vid.append(label)    
-
-            ###################################
-            #     Data Augmentation START     #
-            ###################################
-            x_vid_arr = np.array(x_vid, dtype='float32')
-            x_vid_arr = preprocess(x_vid_arr,  
-                                height=config.HEIGHT, 
-                                width=config.WIDTH,
-                                augment=augment)
-
-            y_vid_arr = np.array([y_vid])
-            #################################
-            #     Data Augmentation END     #
-            #################################
+# get list of subdirectories for training and validation datasets ie. [signer1_sample1, signer1_sample2, ...]
+print("[INFO] Retrieving lists of subdirectory names for training & validation...")
+val_subdir_ls = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
+train_subdir_ls = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
+print("[INFO] No. of train samples: ", len(train_subdir_ls), 
+      "No. of val samples: ", len(val_subdir_ls))
 
 
+def train_image_gen():
+    # select a no. of subfolders (no. of video samples) for the batch
+    batch_subdir_ls = np.random.choice(a=train_subdir_ls, size=len(train_subdir_ls))
+
+    # loop thru each subfolder (video sample)
+    for _, subdir in enumerate(batch_subdir_ls):
+        # retrieve list of image filepaths for a video sample 
+        imgPaths = [f for f in glob.glob(subdir + "**/*")]
+
+        x_vid, y_vid = [], []
+        # loop thru the filepaths to obtain the img data and label
+        for path in imgPaths:
+            img, label = parse_image(path)
+            x_vid.append(img)
+            y_vid.append(label)    
+
+        ###################################
+        #     Data Augmentation START     #
+        ###################################
+        x_vid_arr = np.array(x_vid, dtype='float32')
+        x_vid_arr = preprocess(x_vid_arr,  
+                            height=config.HEIGHT, 
+                            width=config.WIDTH,
+                            augment=False)
+
+        y_vid_arr = np.array([y_vid])
         #################################
-        #          WITH Padding         #
+        #     Data Augmentation END     #
         #################################
-            # pad the array to follow a predefined no. of frames per video
-            # image tensors of shape (1, 30, 512, 512, 3) means
-            # batch size/no. of videos: 1
-            # no. of frames per video AFTER padding: 30 
-            # frame height: 512
-            # frame width: 512
-            # no. of channels: 3
 
-            res_x = np.zeros((config.FRAMES_PADDED, 
-                            x_vid_arr.shape[1], 
-                            x_vid_arr.shape[2], 
-                            x_vid_arr.shape[3]))
 
-            res_x[:x_vid_arr.shape[0], 
-                :x_vid_arr.shape[1], 
-                :x_vid_arr.shape[2], 
-                :x_vid_arr.shape[3]] = x_vid_arr[:min(config.FRAMES_PADDED, x_vid_arr.shape[1]),:,:,:]        
+    #################################
+    #          WITH Padding         #
+    #################################
+        # pad the array to follow a predefined no. of frames per video
+        # image tensors of shape (1, 30, 512, 512, 3) means
+        # batch size/no. of videos: 1
+        # no. of frames per video AFTER padding: 30 
+        # frame height: 512
+        # frame width: 512
+        # no. of channels: 3
 
-            res_y = np.zeros((1,config.FRAMES_PADDED))
+        res_x = np.zeros((config.FRAMES_PADDED, 
+                        x_vid_arr.shape[1], 
+                        x_vid_arr.shape[2], 
+                        x_vid_arr.shape[3]))
 
-            res_y[:,:y_vid_arr.shape[1]] = y_vid_arr[:,:min(config.FRAMES_PADDED, y_vid_arr.shape[1])]
+        res_x[:x_vid_arr.shape[0], 
+            :x_vid_arr.shape[1], 
+            :x_vid_arr.shape[2], 
+            :x_vid_arr.shape[3]] = x_vid_arr[:min(config.FRAMES_PADDED, x_vid_arr.shape[0]),:,:,:]        
+
+        res_y = np.zeros((1,config.FRAMES_PADDED))
+
+        res_y[:,:y_vid_arr.shape[1]] = y_vid_arr[:,:min(config.FRAMES_PADDED, y_vid_arr.shape[1])]
 
         # create the batch img array and batch labels array 
         batch_x = res_x                       
@@ -122,23 +127,105 @@ def image_gen(subdir_ls, batch_size=1, augment=False):
 
         # convert class vectors (integers from 0 to num_classes) into one-hot encoded class matrix 
         batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=config.NUM_CLASSES)
-            
+
         #return (batch_x, batch_y)
-        yield(batch_x, batch_y)
-        
-
-# get list of subdirectories for training and validation datasets ie. [signer1_sample1, signer1_sample2, ...]
-print("[INFO] Retrieving lists of subdirectory names for training & validation...")
-val_subdir_ls = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
-train_subdir_ls = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
-print("[INFO] No. of train samples: ", len(train_subdir_ls), 
-      "No. of val samples: ", len(val_subdir_ls))
+        yield (batch_x, batch_y)
 
 
-print("[INFO] Preparing training & validation generators...")
-val_dataset = image_gen(val_subdir_ls, config.BS)
-train_dataset = image_gen(train_subdir_ls, config.BS)
-         
+def val_image_gen():
+    # select a no. of subfolders (no. of video samples) for the batch
+    batch_subdir_ls = np.random.choice(a=val_subdir_ls, size=len(val_subdir_ls))
+
+    # loop thru each subfolder (video sample)
+    for _, subdir in enumerate(batch_subdir_ls):
+        # retrieve list of image filepaths for a video sample 
+        imgPaths = [f for f in glob.glob(subdir + "**/*")]
+
+        x_vid, y_vid = [], []
+        # loop thru the filepaths to obtain the img data and label
+        for path in imgPaths:
+            img, label = parse_image(path)
+            x_vid.append(img)
+            y_vid.append(label)    
+
+        ###################################
+        #     Data Augmentation START     #
+        ###################################
+        x_vid_arr = np.array(x_vid, dtype='float32')
+        x_vid_arr = preprocess(x_vid_arr,  
+                            height=config.HEIGHT, 
+                            width=config.WIDTH,
+                            augment=False)
+
+        y_vid_arr = np.array([y_vid])
+        #################################
+        #     Data Augmentation END     #
+        #################################
+
+
+    #################################
+    #          WITH Padding         #
+    #################################
+        # pad the array to follow a predefined no. of frames per video
+        # image tensors of shape (1, 30, 512, 512, 3) means
+        # batch size/no. of videos: 1
+        # no. of frames per video AFTER padding: 30 
+        # frame height: 512
+        # frame width: 512
+        # no. of channels: 3
+
+        res_x = np.zeros((config.FRAMES_PADDED, 
+                        x_vid_arr.shape[1], 
+                        x_vid_arr.shape[2], 
+                        x_vid_arr.shape[3]))
+
+        res_x[:x_vid_arr.shape[0], 
+            :x_vid_arr.shape[1], 
+            :x_vid_arr.shape[2], 
+            :x_vid_arr.shape[3]] = x_vid_arr[:min(config.FRAMES_PADDED, x_vid_arr.shape[0]),:,:,:]        
+
+        res_y = np.zeros((1,config.FRAMES_PADDED))
+
+        res_y[:,:y_vid_arr.shape[1]] = y_vid_arr[:,:min(config.FRAMES_PADDED, y_vid_arr.shape[1])]
+
+        # create the batch img array and batch labels array 
+        batch_x = res_x                      
+        batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
+        batch_y = res_y         
+        #batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
+        #################################
+        #           WITH Padding        #
+        #################################
+
+
+        #################################
+        #            NO Padding         #
+        #################################
+        # batch_x = x_vid_arr                        
+        # batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
+        # batch_y = np.array(y_vid)            
+        # batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
+        #################################
+        #            NO Padding         #
+        #################################
+
+        # convert class vectors (integers from 0 to num_classes) into one-hot encoded class matrix 
+        batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=config.NUM_CLASSES)
+                
+        #return (batch_x, batch_y)
+        yield (batch_x, batch_y)
+
+
+print("[INFO] Preparing training & validation generators...")   
+val_dataset = tf.data.Dataset.from_generator(generator=val_image_gen, 
+                                            output_types=(tf.float32, tf.int32),
+                                            output_shapes=(tf.TensorShape([1, config.FRAMES_PADDED, config.HEIGHT, config.WIDTH, 3]), 
+                                                        tf.TensorShape([1, config.FRAMES_PADDED, config.NUM_CLASSES]))) 
+
+train_dataset = tf.data.Dataset.from_generator(generator=train_image_gen, 
+                                            output_types=(tf.float32, tf.int32),
+                                            output_shapes=(tf.TensorShape([1, config.FRAMES_PADDED, config.HEIGHT, config.WIDTH, 3]), 
+                                                        tf.TensorShape([1, config.FRAMES_PADDED, config.NUM_CLASSES]))) 
 
 # check shapes
 for batch in train_dataset:
@@ -153,60 +240,6 @@ for batch in val_dataset:
 ############################################################################
 
 
-#'@tf.function' decorator compiles a function into a callable tensorflow graph
-@tf.function
-def train_step(step, x, y):
-    '''
-    input: x, y <- batches
-    input: step <- batch step 
-    return: loss value
-    '''
-    # start the scope of gradient 
-    with tf.GradientTape() as tape:
-        logits = model(x, training=True) # forward pass
-        train_loss_value = loss_fn(y, logits) # compute loss 
-       
-    # compute gradient 
-    grads = tape.gradient(train_loss_value, model.trainable_weights)
-
-    # update weights
-    optimizer.apply_gradients(zip(grads, model.trainable_weights))
-
-    # update metrics
-    train_acc_metric.update_state(y, logits)
-
-    # write training loss and accuracy to tensorboard
-    with train_writer.as_default():
-        tf.summary.scalar('train loss', train_loss_value, step=step)
-        tf.summary.scalar('train accuracy', train_acc_metric.result(), step=step)
-    
-    return train_loss_value
-
-
-@tf.function
-def test_step(step, x, y):
-    '''
-    input: x, y <- batches 
-    input: step <- batch step
-    return: loss value
-    '''
-    # forward pass, no backprop, inference mode 
-    val_logits = model(x, training=False) 
-
-    # compute the loss value 
-    val_loss_value = loss_fn(y, val_logits)
-
-    # update val metric
-    val_acc_metric.update_state(y, val_logits)
-
-    # write test loss and accuracy to tensorboard
-    with test_writer.as_default():
-        tf.summary.scalar('val loss', val_loss_value, step=step)
-        tf.summary.scalar('val accuracy', val_acc_metric.result(), step=step) 
-
-    return val_loss_value
-
-
 # 1. Iterate over the number of epochs
 # 2. For each epoch, iterate over the datasets, in batches (x, y)
 # 3. For each batch, open GradientTape() scope
@@ -214,76 +247,118 @@ def test_step(step, x, y):
 # 5. Outside this scope, retrieve the gradients of the weights w.r.t loss
 # 6. Next, use the optimizer to update the weights based on the gradients
 
+# init optimizer
+optimizer = tf.keras.optimizers.Adam()
+
+# init loss function
+loss_fn = tf.keras.losses.CategoricalCrossentropy()
+
+# prepare metrics
+train_acc_metric = tf.keras.metrics.CategoricalAccuracy()
+val_acc_metric   = tf.keras.metrics.CategoricalAccuracy()
+
+# init tensorboard writers
+writer_ls = [config.TENSORBOARD_TRAIN_WRITER, config.TENSORBOARD_VAL_WRITER]
+for writer in writer_ls:
+    if not os.path.exists(writer):
+        os.makedirs(writer)
+train_writer = tf.summary.create_file_writer(config.TENSORBOARD_TRAIN_WRITER)
+test_writer  = tf.summary.create_file_writer(config.TENSORBOARD_VAL_WRITER)
+
+
 # init model object
 time_model = VGG(np.ones((5,256,256,3)))
 x = time_model.output
 model = Model(time_model.input , x)
 for layer in model.layers:
-    print(layer,layer.input_shape, layer.output_shape)
+    print(layer, layer.input_shape, layer.output_shape)
 
-temp=0
-model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
-X = np.zeros((1,30,256,256,3))
-y = np.zeros((1,30,226))
-# iterate over the batches of the train dataset
-for train_batch_step, (batch_x, batch_y) in enumerate(train_dataset):
-    #print("batch x SHAPE IS " ,  batch_x.shape)
-    #print("batch y SHAPE IS " ,  batch_y.shape)
-    X = np.append(X, batch_x, axis=0)
-    y = np.append(y, batch_y, axis=0)
-    temp+=1
-    if temp>9:
-        break
+# model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
+# batch_size = 0
+# X, y = [], []
 
-model.fit(X, y, batch_size=1, epochs=config.EPOCHS)
-
-# # init optimizer
-# optimizer = tf.keras.optimizers.Adam()
-
-# # init loss function
-# loss_fn = tf.keras.losses.CategoricalCrossentropy()
-
-# # prepare metrics
-# train_acc_metric = tf.keras.metrics.CategoricalAccuracy()
-# val_acc_metric   = tf.keras.metrics.CategoricalAccuracy()
-
-# # init tensorboard writers
-# writer_ls = [config.TENSORBOARD_TRAIN_WRITER, config.TENSORBOARD_VAL_WRITER]
-# for writer in writer_ls:
-#     if not os.path.exists(writer):
-#         os.makedirs(writer)
-# train_writer = tf.summary.create_file_writer(config.TENSORBOARD_TRAIN_WRITER)
-# test_writer  = tf.summary.create_file_writer(config.TENSORBOARD_VAL_WRITER)
-
+# # iterate over the batches of the train dataset
 # print("[INFO] Training model...")
-# for epoch in range(config.EPOCHS):
-    
-#     t = time.time()
+# for train_batch_step, (batch_x, batch_y) in enumerate(train_dataset):
+#     X.append(batch_x)
+#     y.append(batch_y)
+#     batch_size += 1
+#     if batch_size >9:
+#         break
+# X = np.concatenate(tuple(X), axis=0)
+# y = np.concatenate(tuple(y), axis=0) 
+# print("X shape is: " ,  X.shape)
+# print("y shape is: " ,  y.shape)
 
-#     # iterate over the batches of the train dataset
-#     for train_batch_step, (batch_x, batch_y) in enumerate(train_dataset):
+# model.fit(X, y, batch_size=1, epochs=config.EPOCHS)
 
-#         train_batch_step = tf.convert_to_tensor(train_batch_step, dtype=tf.int64)
-#         train_loss_value = train_step(train_batch_step, batch_x, batch_y)
 
-#     # evaluation on validation set 
-#     # run a validation loop at the end of each epoch
-#     for test_batch_step, (batch_x, batch_y) in enumerate(val_dataset):
+#'@tf.function' decorator compiles a function into a callable tensorflow graph
+@tf.function
+def train_batch(step, x, y):
+    with tf.GradientTape() as tape:
+        logits = model(x, training=True) # forward pass
+        loss_value = loss_fn(y, logits) # compute loss
+    # compute gradients
+    grads = tape.gradient(loss_value, model.trainable_weights)
+    # update weights
+    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+    # update metrics
+    train_acc_metric.update_state(y, logits)
+    # write training loss and accuracy to tensorboard
+    with train_writer.as_default():
+        tf.summary.scalar('train loss', loss_value, step=step)
+        tf.summary.scalar('train accuracy', train_acc_metric.result(), step=step)
+    return loss_value
 
-#         test_batch_step = tf.convert_to_tensor(test_batch_step, dtype=tf.int64)
-#         val_loss_value = test_step(test_batch_step, batch_x, batch_y)
 
-#     template = 'ETA: {} - epoch: {} loss: {}  acc: {} val loss: {} val acc: {}\n'
+@tf.function
+def test_batch(step, x, y):
+    # forward pass, no backprop, inference mode
+    val_logits = model(x, training=False)
+    # compute loss
+    loss_value = loss_fn(y, val_logits)
+    # update metrics
+    val_acc_metric.update_state(y, val_logits)
+    # write test loss and accuracy to tensorboard
+    with test_writer.as_default():
+        tf.summary.scalar('val loss', loss_value, step=step)
+        tf.summary.scalar('val accuracy', val_acc_metric.result(), step=step)
+    return loss_value
 
-#     print(template.format(
-#         round((time.time() - t)/60, 2), epoch + 1,
-#         train_loss_value, float(train_acc_metric.result()),
-#         val_loss_value, float(val_acc_metric.result())
-#     ))
-        
-#     # reset metrics at the end of each epoch
-#     train_acc_metric.reset_states()
-#     val_acc_metric.reset_states()
+
+print("[INFO] Training model...")
+epochs = config.EPOCHS
+for epoch in range(epochs):
+    print("\nStart of epoch %d" % (epoch,))
+    t = time.time()
+
+    # Iterate over the batches of the dataset
+    for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
+        step = tf.convert_to_tensor(step, dtype=tf.int64)
+        train_loss_value = train_batch(step, x_batch_train, y_batch_train)
+
+        # Log every 10 batches
+        if step % 100 == 0:
+            print("Training loss (1 batch) at step %d: %.4f" % (step, float(train_loss_value)))
+            print("%d samples seen" % ((step + 1) * config.BS))
+
+    # Run a validation loop at the end of each epoch
+    for step, (x_batch_val, y_batch_val) in enumerate(val_dataset):
+        step = tf.convert_to_tensor(step, dtype=tf.int64)
+        val_loss_value = test_batch(step, x_batch_val, y_batch_val)
+
+    template = 'ETA: {} - epoch: {} loss: {}  acc: {} val loss: {} val acc: {}\n'
+
+    print(template.format(
+        round((time.time() - t)/60, 2), epoch + 1,
+        train_loss_value, float(train_acc_metric.result()),
+        val_loss_value, float(val_acc_metric.result())
+    ))
+
+    # Reset training metrics at the end of each epoch
+    train_acc_metric.reset_states()
+    val_acc_metric.reset_states()
 
 
 # ############################################################################
