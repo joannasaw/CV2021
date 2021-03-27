@@ -79,9 +79,9 @@ def train_image_gen():
         #################################
 
 
-    #################################
-    #          WITH Padding         #
-    #################################
+        #################################
+        #          WITH Padding         #
+        #################################
         # pad the array to follow a predefined no. of frames per video
         # image tensors of shape (1, 30, 512, 512, 3) means
         # batch size/no. of videos: 1
@@ -163,9 +163,9 @@ def val_image_gen():
         #################################
 
 
-    #################################
-    #          WITH Padding         #
-    #################################
+        #################################
+        #          WITH Padding         #
+        #################################
         # pad the array to follow a predefined no. of frames per video
         # image tensors of shape (1, 30, 512, 512, 3) means
         # batch size/no. of videos: 1
