@@ -83,11 +83,11 @@ def train_image_gen():
         #          WITH Padding         #
         #################################
         # pad the array to follow a predefined no. of frames per video
-        # image tensors of shape (1, 30, 512, 512, 3) means
+        # image tensors of shape (1, 30, 256, 256, 3) means
         # batch size/no. of videos: 1
         # no. of frames per video AFTER padding: 30 
-        # frame height: 512
-        # frame width: 512
+        # frame height: 256
+        # frame width: 256
         # no. of channels: 3
 
         res_x = np.zeros((config.FRAMES_PADDED, 
@@ -107,8 +107,7 @@ def train_image_gen():
         # create the batch img array and batch labels array 
         batch_x = res_x                       
         batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
-        batch_y = res_y         
-        #batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
+        batch_y = res_y                            #for shape: (1, N, 226) where N is no. of frames
         #################################
         #           WITH Padding        #
         #################################
@@ -167,11 +166,11 @@ def val_image_gen():
         #          WITH Padding         #
         #################################
         # pad the array to follow a predefined no. of frames per video
-        # image tensors of shape (1, 30, 512, 512, 3) means
+        # image tensors of shape (1, 30, 256, 256, 3) means
         # batch size/no. of videos: 1
         # no. of frames per video AFTER padding: 30 
-        # frame height: 512
-        # frame width: 512
+        # frame height: 256
+        # frame width: 256
         # no. of channels: 3
 
         res_x = np.zeros((config.FRAMES_PADDED, 
@@ -191,8 +190,7 @@ def val_image_gen():
         # create the batch img array and batch labels array 
         batch_x = res_x                      
         batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
-        batch_y = res_y         
-        #batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
+        batch_y = res_y                            #for shape: (1, N, 226) where N is no. of frames
         #################################
         #           WITH Padding        #
         #################################
@@ -273,7 +271,7 @@ model = Model(time_model.input , x)
 for layer in model.layers:
     print(layer, layer.input_shape, layer.output_shape)
 
-# model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
+model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
 # batch_size = 0
 # X, y = [], []
 
@@ -289,7 +287,6 @@ for layer in model.layers:
 # y = np.concatenate(tuple(y), axis=0) 
 # print("X shape is: " ,  X.shape)
 # print("y shape is: " ,  y.shape)
-
 # model.fit(X, y, batch_size=1, epochs=config.EPOCHS)
 
 
@@ -339,7 +336,7 @@ for epoch in range(epochs):
         train_loss_value = train_batch(step, x_batch_train, y_batch_train)
 
         # Log every 10 batches
-        if step % 100 == 0:
+        if step % 10 == 0:
             print("Training loss (1 batch) at step %d: %.4f" % (step, float(train_loss_value)))
             print("%d samples seen" % ((step + 1) * config.BS))
 
@@ -429,3 +426,4 @@ for epoch in range(epochs):
 # new_model.build((x_train.shape))
 # # reload the weights 
 # new_model.load_weights('net.h5')
+
