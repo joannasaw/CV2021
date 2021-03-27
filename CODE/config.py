@@ -53,7 +53,7 @@ DEPTH = 3
 # initialize the number of epochs to train for
 # initial learning rate, batch size, finetuning epochs
 BS = 1
-EPOCHS = 50
+EPOCHS = 1
 INIT_LR = 1e-3
 FINETUNE_EPOCHS = 10
 
@@ -66,3 +66,4 @@ TENSORBOARD_VAL_WRITER = 'output/logs/val/'
 
 # path to confusion matrix fig
 CONFUSION_MATRIX = 'cm.png'
+
