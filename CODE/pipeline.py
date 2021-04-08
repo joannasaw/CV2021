@@ -10,35 +10,12 @@ import tensorflow.keras.backend as K
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import LSTM, Flatten, Dense, LSTM, Bidirectional, Input, GlobalAveragePooling2D, Activation, TimeDistributed
 from attention import Attention
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 # import utility files
 from models import *
 import config
 import utils
 
-# ############################################################################
-# #                          Data Preparation                                #
-# ############################################################################
-
-
-print("[INFO] Preparing training & validation generators...")   
-val_dataset = tf.data.Dataset.from_generator(generator=utils.val_image_gen, 
-                                            output_types=(tf.float32, tf.int32),
-                                            output_shapes=(tf.TensorShape([1, config.FRAMES_PADDED, config.HEIGHT, config.WIDTH, 3]), 
-                                                        tf.TensorShape([1, config.FRAMES_PADDED, config.NUM_CLASSES]))) 
-
-train_dataset = tf.data.Dataset.from_generator(generator=utils.train_image_gen, 
-                                            output_types=(tf.float32, tf.int32),
-                                            output_shapes=(tf.TensorShape([1, config.FRAMES_PADDED, config.HEIGHT, config.WIDTH, 3]), 
-                                                        tf.TensorShape([1, config.FRAMES_PADDED, config.NUM_CLASSES]))) 
-
-# check shapes
-for batch in train_dataset:
-    print("x_batch_train shape: ", batch[0].shape, "y_batch_train shape: ", batch[1].shape)
-    break
-for batch in val_dataset:
-    print("x_batch_val shape: ", batch[0].shape, "y_batch_val shape: ", batch[1].shape)
-    break
 
 ############################################################################
 #                          Training Loop                                   #
@@ -53,7 +30,7 @@ for batch in val_dataset:
 # 6. Next, use the optimizer to update the weights based on the gradients
 
 # init optimizer
-optimizer = tf.keras.optimizers.Adam()
+optimizer = tf.keras.optimizers.Adam(learning_rate=config.INIT_LR)
 
 # init loss function
 loss_fn = tf.keras.losses.CategoricalCrossentropy()
@@ -74,27 +51,9 @@ test_writer  = tf.summary.create_file_writer(config.TENSORBOARD_VAL_WRITER)
 # init model object
 time_model = VGG(np.ones((5,256,256,3)))
 x = time_model.output
-model = Model(time_model.input , x)
+model = Model(time_model.input, x)
 for layer in model.layers:
     print(layer, layer.input_shape, layer.output_shape)
-
-model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
-# batch_size = 0
-# X, y = [], []
-
-# # iterate over the batches of the train dataset
-# print("[INFO] Training model...")
-# for train_batch_step, (batch_x, batch_y) in enumerate(train_dataset):
-#     X.append(batch_x)
-#     y.append(batch_y)
-#     batch_size += 1
-#     if batch_size >9:
-#         break
-# X = np.concatenate(tuple(X), axis=0)
-# y = np.concatenate(tuple(y), axis=0) 
-# print("X shape is: " ,  X.shape)
-# print("y shape is: " ,  y.shape)
-# model.fit(X, y, batch_size=1, epochs=config.EPOCHS)
 
 
 #'@tf.function' decorator compiles a function into a callable tensorflow graph
@@ -102,7 +61,7 @@ model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accur
 def train_batch(step, x, y):
     with tf.GradientTape() as tape:
         logits = model(x, training=True) # forward pass
-        loss_value = loss_fn(y, logits) # compute loss
+        loss_value = loss_fn(y, logits) # compute loss   
     # compute gradients
     grads = tape.gradient(loss_value, model.trainable_weights)
     # update weights
@@ -136,16 +95,23 @@ epochs = config.EPOCHS
 for epoch in range(epochs):
     print("\nStart of epoch %d" % (epoch,))
     t = time.time()
+    print("[INFO] Preparing training & validation generators...")
+    val_dataset = tf.data.Dataset.from_generator(generator=utils.val_image_gen, 
+                                            output_types=(tf.float32, tf.int32),) 
+
+    train_dataset = tf.data.Dataset.from_generator(generator=utils.train_image_gen, 
+                                            output_types=(tf.float32, tf.int32),)
+                                                  
 
     # Iterate over the batches of the dataset
     for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
         step = tf.convert_to_tensor(step, dtype=tf.int64)
         train_loss_value = train_batch(step, x_batch_train, y_batch_train)
 
-        # Log every 10 batches
-        if step % 10 == 0:
+        # Log every 200 batches
+        if step % 200 == 0:
             print("Training loss (1 batch) at step %d: %.4f" % (step, float(train_loss_value)))
-            print("%d samples seen" % ((step + 1) * config.BS))
+            
 
     # Run a validation loop at the end of each epoch
     for step, (x_batch_val, y_batch_val) in enumerate(val_dataset):
