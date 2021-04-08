@@ -92,10 +92,10 @@ def test_batch(step, x, y):
 
 print("[INFO] Training model...")
 epochs = config.EPOCHS
+print("[INFO] Preparing training & validation generators...")
 for epoch in range(epochs):
     print("\nStart of epoch %d" % (epoch,))
     t = time.time()
-    print("[INFO] Preparing training & validation generators...")
     val_dataset = tf.data.Dataset.from_generator(generator=utils.val_image_gen, 
                                             output_types=(tf.float32, tf.int32),) 
 
