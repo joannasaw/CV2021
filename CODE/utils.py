@@ -3,6 +3,7 @@ import PIL
 import cv2
 import PIL.Image
 import glob
+import pickle
 import time
 import numpy as np
 import tensorflow as tf
@@ -15,8 +16,18 @@ import config
 
 # get list of subdirectories for training and validation datasets ie. [signer1_sample1, signer1_sample2, ...]
 print("[INFO] Retrieving lists of subdirectory names for training & validation...")
-val_subdir_ls = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
-train_subdir_ls = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
+if "val_subdir.txt" in os.listdir():
+    with open("val_subdir.txt", "rb") as fp:   # Unpickling
+        val_subdir_ls = pickle.load(fp)
+    with open("train_subdir.txt", "rb") as fp2:   # Unpickling
+        train_subdir_ls = pickle.load(fp2)
+else:
+    val_subdir_ls = [x[0] for x in os.walk(config.VAL_IMGS_PATH) if x[0] != config.VAL_IMGS_PATH]
+    train_subdir_ls = [x[0] for x in os.walk(config.TRAIN_IMGS_PATH) if x[0] != config.TRAIN_IMGS_PATH]
+    with open("val_subdir.txt", "wb") as fp:   #Pickling
+        pickle.dump(val_subdir_ls, fp)
+    with open("train_subdir.txt", "wb") as fp2:   #Pickling
+        pickle.dump(train_subdir_ls, fp2)
 print("[INFO] No. of train samples: ", len(train_subdir_ls), 
       "No. of val samples: ", len(val_subdir_ls))
 
@@ -49,15 +60,17 @@ def train_image_gen():
 
     # loop thru each subfolder (video sample)
     for _, subdir in enumerate(batch_subdir_ls):
+        if _>8:
+            break
         # retrieve list of image filepaths for a video sample 
         imgPaths = [f for f in glob.glob(subdir + "**/*")]
 
         x_vid, y_vid = [], []
         # loop thru the filepaths to obtain the img data and label
-        for path in imgPaths:
-            img, label = parse_image(path)
+        for path in range(0, len(imgPaths),int(len(imgPaths)//10)):
+            img, label = parse_image(imgPaths[path])
             x_vid.append(img)
-            y_vid.append(label)    
+        y_vid.append(label)    
 
         ###################################
         #     Data Augmentation START     #
@@ -84,7 +97,7 @@ def train_image_gen():
         # frame height: 256
         # frame width: 256
         # no. of channels: 3
-
+        '''
         res_x = np.zeros((config.FRAMES_PADDED, 
                         x_vid_arr.shape[1], 
                         x_vid_arr.shape[2], 
@@ -103,6 +116,7 @@ def train_image_gen():
         batch_x = res_x                       
         batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
         batch_y = res_y                            #for shape: (1, N, 226) where N is no. of frames
+        '''
         #################################
         #           WITH Padding        #
         #################################
@@ -111,10 +125,10 @@ def train_image_gen():
         #################################
         #            NO Padding         #
         #################################
-        # batch_x = x_vid_arr                        
-        # batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
-        # batch_y = np.array(y_vid)            
-        # batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
+        batch_x = x_vid_arr                        
+        batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
+        batch_y = np.array(y_vid)            
+        batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
         #################################
         #            NO Padding         #
         #################################
@@ -132,15 +146,17 @@ def val_image_gen():
 
     # loop thru each subfolder (video sample)
     for _, subdir in enumerate(batch_subdir_ls):
+        if _ >2:
+            break
         # retrieve list of image filepaths for a video sample 
         imgPaths = [f for f in glob.glob(subdir + "**/*")]
 
         x_vid, y_vid = [], []
         # loop thru the filepaths to obtain the img data and label
-        for path in imgPaths:
-            img, label = parse_image(path)
+        for path in range(0, len(imgPaths),int(len(imgPaths)//10)):
+            img, label = parse_image(imgPaths[path])
             x_vid.append(img)
-            y_vid.append(label)    
+        y_vid.append(label)    
 
         ###################################
         #     Data Augmentation START     #
@@ -167,7 +183,7 @@ def val_image_gen():
         # frame height: 256
         # frame width: 256
         # no. of channels: 3
-
+        '''
         res_x = np.zeros((config.FRAMES_PADDED, 
                         x_vid_arr.shape[1], 
                         x_vid_arr.shape[2], 
@@ -186,6 +202,7 @@ def val_image_gen():
         batch_x = res_x                      
         batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
         batch_y = res_y                            #for shape: (1, N, 226) where N is no. of frames
+        '''
         #################################
         #           WITH Padding        #
         #################################
@@ -194,10 +211,10 @@ def val_image_gen():
         #################################
         #            NO Padding         #
         #################################
-        # batch_x = x_vid_arr                        
-        # batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
-        # batch_y = np.array(y_vid)            
-        # batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
+        batch_x = x_vid_arr                        
+        batch_x = np.expand_dims(batch_x, axis=0)  #for shape: (1, N, H, W, C) where N is no. of frames
+        batch_y = np.array(y_vid)            
+        batch_y = np.expand_dims(batch_y, axis=0)  #for shape: (1, N, 226) where N is no. of frames
         #################################
         #            NO Padding         #
         #################################
