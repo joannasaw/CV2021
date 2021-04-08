@@ -39,7 +39,7 @@ CLASSES = [136, 130, 139, 222, 31, 60, 100, 168, 54, 225, 142, 170, 29, \
 NUM_CLASSES = len(CLASSES)
 
 # frames per video after padding
-FRAMES_PADDED = 30
+FRAMES_PADDED = 10 # was 30 earlier
 
 FPS = 10
 VID_NUM_PADDED = 3
@@ -53,17 +53,12 @@ DEPTH = 3
 # initialize the number of epochs to train for
 # initial learning rate, batch size, finetuning epochs
 BS = 1
-EPOCHS = 1
-INIT_LR = 1e-3
-FINETUNE_EPOCHS = 10
-
-# path to output trained autoencoder
-MODEL_PATH = "outputs/model.h5"
+EPOCHS = 180000
+INIT_LR = 1e-4
 
 # path to tensorboard logs
 TENSORBOARD_TRAIN_WRITER = 'output/logs/train/'
 TENSORBOARD_VAL_WRITER = 'output/logs/val/'
 
-# path to confusion matrix fig
-CONFUSION_MATRIX = 'cm.png'
-
+# path to output trained autoencoder
+MODEL_PATH = "outputs/model.h5"
