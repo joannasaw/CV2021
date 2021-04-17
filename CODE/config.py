@@ -20,9 +20,9 @@ VAL_VID_DEPTH_PATH = os.path.sep.join([DATA_PATH, "videos/val_depth"])
 TRAIN_IMGS_PATH = os.path.sep.join([DATA_PATH, "images/train_10_preprocess"])
 VAL_IMGS_PATH = os.path.sep.join([DATA_PATH, "images/val_10_preprocess"])
 
-# # derive the new images directory after renaming
-# TRAIN_NEWIMGS_PATH = os.path.sep.join([DATA_PATH, "images/train_10_bal_new"])
-# VAL_NEWIMGS_PATH = os.path.sep.join([DATA_PATH, "images/val_10_bal_new"])
+# derive the new images directory after renaming
+TRAIN_NEWIMGS_PATH = os.path.sep.join([DATA_PATH, "images/train_10_new"])
+VAL_NEWIMGS_PATH = os.path.sep.join([DATA_PATH, "images/val_10_new"])
 
 # derive the labels directory
 TRAIN_LABELS = os.path.sep.join([DATA_PATH, "labels/train_labels.csv"])
@@ -58,9 +58,5 @@ TENSORBOARD_VAL_WRITER = 'output/logs/val'
 MODEL_PATH = "output/model/"
 CHKPT_PATH = "output/checkpoints/"
 
-# either one of: 
-# "vgg_lstm" , "vgg_fpm_lstm", "vgg_blstm", "vgg_fpm_blstm", "resnet_lstm", ...
-# MODEL_ARCH = "vgg_lstm_attention"
-
-TRAIN_SAMPLES = 450
-VAL_SAMPLES = 150
+# TRAIN_SAMPLES = 450
+# VAL_SAMPLES = 150
