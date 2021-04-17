@@ -30,12 +30,12 @@ for vid_dir, img_dir, labels_file in zip(INPUT_DATASETS, OUTPUT_DATASETS, LABELS
 
         file_name = p.split(os.path.sep)[-1].split("_color")[-2]
         #print(file_name)
-        
+
         label = df.loc[df['filename'] == file_name, 'label'].iloc[0]
         #print(label)
 
         # for every video, make a new directory to store all frames for that video
-        vid_frames_dir = os.path.sep.join([img_dir, file_name])
+        vid_frames_dir = os.path.sep.join([img_dir, str(label), str(file_name)])
         if not os.path.exists(vid_frames_dir):
             os.makedirs(vid_frames_dir)
 
@@ -44,4 +44,4 @@ for vid_dir, img_dir, labels_file in zip(INPUT_DATASETS, OUTPUT_DATASETS, LABELS
 
         # perform system call to extract frames from each video
         os.system("ffmpeg -i "+str(p)+" -vf fps="+str(FPS)+" "+str(vid_frames_dir)+"/"+str(new_filename)+"_%0"+str(NUM_PADDED)+"d.png")
-        # eg. DATA/images/train/signer1_sample1/signer1_sample1_136_001.png
+        # eg. DATA/images/train2/136/signer1_sample1/signer1_sample1_136_001.png
