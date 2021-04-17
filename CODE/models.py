@@ -7,91 +7,121 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras import Model, Input, Sequential
-from tensorflow.keras.layers import Dropout, LSTM, Flatten, Dense, LSTM, Bidirectional, Input, GlobalAveragePooling2D, Activation, TimeDistributed
+from tensorflow.keras.layers import LSTM, Flatten, Dense, LSTM, Bidirectional, Input, GlobalAveragePooling2D, Activation, TimeDistributed, Activation, Dropout
 from attention import Attention
-from keras.utils.vis_utils import plot_model
+# import utility files
+import config
 
 
-class FPMLayer(tf.keras.Model):
+class ConvLayer(tf.keras.layers.Layer):
+    def __init__(self, filters, kernel_size, dilation_rate, activation='relu', padding='same'):
+        super(ConvLayer, self).__init__()
+        # conv layer
+        self.conv = tf.keras.layers.Conv2D(filters,
+                                           kernel_size=kernel_size,
+                                           dilation_rate=dilation_rate,
+                                           activation=activation,
+                                           padding=padding)
+
+    def call(self, input_tensor):
+        x = self.conv(input_tensor)
+        return x
+
+
+class FPModule(tf.keras.Model):
     def __init__(self):
-        super(FPMLayer, self).__init__(name="fpm")
-        self.conv1 = tf.keras.layers.Conv2D(kernel_size=(1,1),filters=128,activation='relu',padding="same")
-        self.conv2 = tf.keras.layers.Conv2D(kernel_size=(3,3),filters=128, activation='relu', padding="same")
-        self.conv3 = tf.keras.layers.Conv2D(kernel_size=(3,3),filters=128, dilation_rate=2, activation='relu', padding="same")
-        self.conv4 = tf.keras.layers.Conv2D(kernel_size=(3,3),filters=128, dilation_rate=4, activation='relu', padding="same")
+        super(FPModule, self).__init__(name="feature_pooling_module")
+        self.layer1 = ConvLayer(filters=128, kernel_size=(1,1), dilation_rate=(1,1))
+        self.layer2 = ConvLayer(filters=128, kernel_size=(3,3), dilation_rate=(1,1))
+        self.layer3 = ConvLayer(filters=128, kernel_size=(3,3), dilation_rate=(2,2))
+        self.layer4 = ConvLayer(filters=128, kernel_size=(3,3), dilation_rate=(4,4))
+        self.cat    = tf.keras.layers.Concatenate()
 
-    def call(self, inputs):
-        print("called")
-        a = self.conv1(inputs)
-        b = self.conv2(inputs)
-        c = self.conv3(inputs)
-        d = self.conv4(inputs)
-        return tf.keras.layers.concatenate([a, b, c, d], axis=-1)
+    def call(self, input_tensor):
+        x_1 = self.layer1(input_tensor)
+        x_2 = self.layer2(input_tensor)
+        x_3 = self.layer3(input_tensor)
+        x_4 = self.layer4(input_tensor)
+        x   = self.cat([x_1, x_2, x_3, x_4])
+        return x 
 
     def compute_output_shape(self, input_shape):
         # You need to override this function if you want to use the subclassed model
         # as part of a functional-style model.
         # Otherwise, this method is optional.
-        return tf.TensorShape([1, 16,16, 512])
+        return tf.TensorShape([1,16,16,512])
 
-    def Vis(self):
-        plot_model(self, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+    def build_graph(self):
+        # helper function to plot model summary information
+        x = tf.keras.layers.Input(shape=(16,16,512))
+        return tf.keras.Model(inputs=[x], outputs=self.call(x))
 
 
-# without last max pooling layer
-def VGG(data):
-    input_shape = data.shape[1:]
-    seq_len = data.shape[0]
+def final_model(MODEL_ARCH):
 
-    base_model = tf.keras.applications.VGG16(
-        include_top=False, # dont need to have FC layer
-        weights='imagenet')
-    
-    model = Sequential()
-    for layer in base_model.layers[:-1]: # just exclude last layer from copying
-        model.add(layer)
+    if MODEL_ARCH.split('_')[0] == 'vgg':
+        model = tf.keras.applications.VGG16(
+            include_top=False, # dont need to have FC layer,
+            weights='imagenet')
 
-    # print("No. of layers in the base model: ", len(model.layers))
-    # model.summary()
+        base_model = tf.keras.Model(inputs=model.input,
+                                    outputs=model.layers[-2].output
+                                    )
 
-    # loop over all layers in the base model and freeze them so they will
-    # *not* be updated during fine-tuning
-    model.trainable = False
+        base_model.trainable = False
+        train_from_layer = 15
+        for layer in base_model.layers[train_from_layer:]:
+            layer.trainable = True
 
-    # Fine-tune on block5_conv2 , block5_conv3
-    # need to train everything
-    train_from_layer = 15 # index 0 to 16
-    # # Freeze all the layers before 'train_from_layer'
-    
-    # print(len(model.layers[train_from_layer:]))
-    for layer in model.layers[train_from_layer:]:
-        layer.trainable = True # trains from block5_conv2 , block5_conv3 onwards
-   
+    elif MODEL_ARCH.split('_')[0] == 'resnet':
+        model = tf.keras.applications.ResNet50(
+            include_top=False, # dont need to have FC layer
+            weights='imagenet')
+
+        base_model = tf.keras.Model(inputs=model.input,
+                                    outputs=model.layers[-2].output
+                                    )
+
+        base_model.trainable = False
+        train_from_layer = 143
+        for layer in base_model.layers[train_from_layer:]:
+            layer.trainable = True
+
+    # print(base_model.summary())
+    # for i,layer in enumerate(base_model.layers):
+    #     print(i, layer.input_shape, layer.output_shape, layer.trainable)
+
     finalModel = Sequential()
-    #finalModel.add(Input(shape=(data.shape)))
-    #print(data.shape)
-    finalModel.add(TimeDistributed(model, input_shape=(None,256,256,3)))
+    finalModel.add(TimeDistributed(base_model, input_shape=(None,256,256,3), name=MODEL_ARCH.split('_')[0]+"_backbone"))
     
-   # finalModel.add(TimeDistributed(FPMLayer()))
-    #print("Entire cnn done")
-    print(finalModel.summary())    
+    # add feature pooling module
+    if MODEL_ARCH.split('_')[1] == 'fpm':
+        finalModel.add(TimeDistributed(FPModule())) 
 
-    finalModel.add(
-        TimeDistributed(
-            GlobalAveragePooling2D() # Or Flatten()
-        )) 
-    
-    finalModel.add(LSTM(512, activation='relu', return_sequences=False))
-    # finalModel.add(Bidirectional(LSTM(512, activation='relu', return_sequences=True), input_shape=(1, None, 16, 16, 512)))
+    # need to have only 1 dimension per cnn/fpm output to feed into LSTM layer - Flatten or use Pooling
+    finalModel.add(TimeDistributed(GlobalAveragePooling2D()))
 
-    # finalModel.add(Attention(512))
+    # add dropout of 0.25
     finalModel.add(Dropout(0.25))
-    finalModel.add(Dense(226, activation="softmax"))
-
-    print(finalModel.summary())
     
-    # timeDistributed_layer = TimeDistributed(model)(input_tensor)
-    # my_time_model = Model( inputs = input_tensor, outputs = timeDistributed_layer )
-    # my_time_model.summary()
+    # add LSTM layer with 512 hidden units
+    if 'lstm' in MODEL_ARCH.split('_'):
+        finalModel.add(LSTM(512, activation='relu', return_sequences=True if MODEL_ARCH.split('_')[-1] == 'attention' else False))
+    # add Bidirectional extensions
+    if 'blstm' in MODEL_ARCH.split('_'):
+        finalModel.add(Bidirectional(LSTM(512, activation='relu', return_sequences=True if MODEL_ARCH.split('_')[-1] == 'attention' else False), input_shape=(1,None,16,16,512)))
+    
+    # add attention mechanism
+    if MODEL_ARCH.split('_')[-1] == 'attention':
+        finalModel.add(Attention(512))
+    
+    # add dropout of 0.25
+    finalModel.add(Dropout(0.25))
+
+    # add FC layer of num_classes=226 with softmax classifier head
+    finalModel.add(Dense(config.NUM_CLASSES, activation="softmax"))
+
+    # output the final model summary
+    print(finalModel.summary())
     
     return finalModel
