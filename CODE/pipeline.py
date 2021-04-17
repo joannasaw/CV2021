@@ -9,28 +9,35 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import LSTM, Flatten, Dense, LSTM, Bidirectional, Input, GlobalAveragePooling2D, Activation, TimeDistributed
-from attention import Attention
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+from tensorflow.keras.utils import plot_model
+#from attention import Attention
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # import utility files
-from models import *
+from models_test import *
 import config
 import utils
+import argparse
+import matplotlib.pyplot as plt
 
 
-############################################################################
-#                          Training Loop                                   #
-############################################################################
+# construct the argument parser and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-m", "--model", required=True,
+	help="model architecture: (1)vgg_lstm (2)vgg_fpm_lstm (3)vgg_lstm_attention (4)vgg_fpm_lstm (5)vgg_fpm_blstm_attention")
+args = vars(ap.parse_args())
 
 
-# 1. Iterate over the number of epochs
-# 2. For each epoch, iterate over the datasets, in batches (x, y)
-# 3. For each batch, open GradientTape() scope
-# 4. Inside this scope, call the model, the forward pass, compute the loss
-# 5. Outside this scope, retrieve the gradients of the weights w.r.t loss
-# 6. Next, use the optimizer to update the weights based on the gradients
+# init model
+MODEL_ARCH = args["model"]
+model = final_model(MODEL_ARCH)
+for layer in model.layers:
+    print(layer,layer.input_shape, layer.output_shape)
+
+# plot model architecture
+plot_model(model, to_file=config.MODEL_PATH+MODEL_ARCH+".png", show_shapes=True, show_layer_names=True)
 
 # init optimizer
-optimizer = tf.keras.optimizers.Adam(learning_rate=config.INIT_LR)
+optimizer = tf.keras.optimizers.Adam(learning_rate=config.INIT_LR, decay=config.INIT_LR/config.EPOCHS)
 
 # init loss function
 loss_fn = tf.keras.losses.CategoricalCrossentropy()
@@ -40,20 +47,38 @@ train_acc_metric = tf.keras.metrics.CategoricalAccuracy()
 val_acc_metric   = tf.keras.metrics.CategoricalAccuracy()
 
 # init tensorboard writers
-writer_ls = [config.TENSORBOARD_TRAIN_WRITER, config.TENSORBOARD_VAL_WRITER]
+train_write_path = os.path.join(config.TENSORBOARD_TRAIN_WRITER, MODEL_ARCH)
+val_write_path = os.path.join(config.TENSORBOARD_VAL_WRITER, MODEL_ARCH)
+writer_ls = [train_write_path, val_write_path]
 for writer in writer_ls:
     if not os.path.exists(writer):
         os.makedirs(writer)
-train_writer = tf.summary.create_file_writer(config.TENSORBOARD_TRAIN_WRITER)
-test_writer  = tf.summary.create_file_writer(config.TENSORBOARD_VAL_WRITER)
+train_writer = tf.summary.create_file_writer(train_write_path)
+test_writer  = tf.summary.create_file_writer(val_write_path)
 
+# init callbacks
+checkpoint_dir = config.CHKPT_PATH
+checkpoint_prefix = os.path.join(checkpoint_dir, MODEL_ARCH, "ckpt")
+checkpoint = tf.train.Checkpoint(optimizer=optimizer)
+best_val_acc = 0.0
 
-# init model object
-time_model = VGG(np.ones((5,256,256,3)))
-x = time_model.output
-model = Model(time_model.input, x)
-for layer in model.layers:
-    print(layer, layer.input_shape, layer.output_shape)
+val_loss_list = []
+def early_stop(loss_list, min_delta, patience):
+    # no early stopping for 2*patience epochs 
+    if len(loss_list)//patience < 2 :
+        return False
+    # mean loss for last patience epochs and second-last patience epochs
+    mean_prev = np.mean(loss_list[::-1][patience:2*patience]) #second-last
+    mean_recent = np.mean(loss_list[::-1][:patience]) #last
+    # can use relative or absolute change
+    delta_abs = np.abs(mean_recent - mean_prev) #abs change
+    delta_abs = np.abs(delta_abs / mean_prev)  # relative change
+    if delta_abs < min_delta:
+        print("[INFO] Loss didn't change much from last %d epochs"%(patience))
+        print("[INFO] Percent change in loss value:", delta_abs*1e2)
+        return True
+    else:
+        return False
 
 
 #'@tf.function' decorator compiles a function into a callable tensorflow graph
@@ -61,7 +86,7 @@ for layer in model.layers:
 def train_batch(step, x, y):
     with tf.GradientTape() as tape:
         logits = model(x, training=True) # forward pass
-        loss_value = loss_fn(y, logits) # compute loss   
+        loss_value = loss_fn(y, logits) # compute loss
     # compute gradients
     grads = tape.gradient(loss_value, model.trainable_weights)
     # update weights
@@ -90,30 +115,33 @@ def test_batch(step, x, y):
     return loss_value
 
 
+#################################
+#          TRAINING LOOP        #
+#################################
 print("[INFO] Training model...")
 epochs = config.EPOCHS
-print("[INFO] Preparing training & validation generators...")
-for epoch in range(epochs):
+for epoch in range(1,epochs+1):
     print("\nStart of epoch %d" % (epoch,))
     t = time.time()
+    print("[INFO] Preparing training & validation generators...")
     val_dataset = tf.data.Dataset.from_generator(generator=utils.val_image_gen, 
                                             output_types=(tf.float32, tf.int32),) 
 
     train_dataset = tf.data.Dataset.from_generator(generator=utils.train_image_gen, 
                                             output_types=(tf.float32, tf.int32),)
-                                                  
+    
 
-    # Iterate over the batches of the dataset
+    # iterate over the batches of the dataset
     for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
         step = tf.convert_to_tensor(step, dtype=tf.int64)
         train_loss_value = train_batch(step, x_batch_train, y_batch_train)
 
-        # Log every 200 batches
-        if step % 200 == 0:
+        # log every _ batches
+        if step % 50 == 0:
             print("Training loss (1 batch) at step %d: %.4f" % (step, float(train_loss_value)))
-            
+            print("%d samples seen" % ((step + 1) * config.BS))
 
-    # Run a validation loop at the end of each epoch
+    # run a validation loop at the end of each epoch
     for step, (x_batch_val, y_batch_val) in enumerate(val_dataset):
         step = tf.convert_to_tensor(step, dtype=tf.int64)
         val_loss_value = test_batch(step, x_batch_val, y_batch_val)
@@ -125,77 +153,44 @@ for epoch in range(epochs):
         train_loss_value, float(train_acc_metric.result()),
         val_loss_value, float(val_acc_metric.result())
     ))
+    
+    # save model checkpoints
+    if float(val_acc_metric.result()) > best_val_acc:
+        checkpoint.save(file_prefix = checkpoint_prefix)
+        print('[INFO] prev val acc: {} new best val accuracy: {}'.format(best_val_acc, 
+                float(val_acc_metric.result())))
+        best_val_acc = float(val_acc_metric.result())
 
-    # Reset training metrics at the end of each epoch
+    # reset training metrics at the end of each epoch
     train_acc_metric.reset_states()
     val_acc_metric.reset_states()
 
+    # early stopping (if necessary)
+    val_loss_list.append(val_loss_value)
+    earlyStop = early_stop(val_loss_list, min_delta=0.01, patience=15)
+    if earlyStop:
+        print("[INFO] Early stop at epoch= %d/%d"%(epoch,epochs))
+        print("[INFO] Terminating training...")
+        break
 
-# ############################################################################
-# #                          Model Evaluation                                #
-# ############################################################################
+# plot the training loss and accuracy
+N = np.arange(0, config.EPOCHS)
+plt.style.use("ggplot")
+plt.figure()
+plt.plot(N, H.history["loss"], label="train_loss")
+plt.plot(N, H.history["val_loss"], label="val_loss")
+plt.plot(N, H.history["accuracy"], label="train_acc")
+plt.plot(N, H.history["val_accuracy"], label="val_acc")
+plt.title("Training Loss and Accuracy")
+plt.xlabel("Epoch #")
+plt.ylabel("Loss/Accuracy")
+plt.legend(loc="lower left")
+plt.savefig(args["model"]+"_plot.png")
 
-
-# # Multiclass ROC AUC score #
-# def multiclass_roc_auc_score(y_test, y_pred, average="macro"):
-#     lb = sklearn.preprocessing.LabelBinarizer()
-#     lb.fit(y_test)
-#     y_test = lb.transform(y_test)
-#     y_pred = lb.transform(y_pred)
-#     return roc_auc_score(y_test, y_pred, average=average)
-
-# # ROC AUC score #
-# print("ROC AUC score: ", multiclass_roc_auc_score(y_test, preds.argmax(axis=1)))
-
-# # Classification report #
-# print("evaluating network...")
-# preds = model.predict(x_test, verbose=1)
-# print(sklearn.metrics.classification_report(y_test.argmax(axis=1), 
-#                                             preds.argmax(axis=1), 
-#                                             target_names=config.CLASSES))
-
-# # Confusion matrix #
-# preds = model.predict(x_test, verbose=2)
-# preds = np.argmax(preds, axis=1)
-# cm = sklearn.metrics.confusion_matrix(np.argmax(y_test, axis=1), preds)
-# cm = pd.DataFrame(cm, range(10),range(10))
-# plt.figure(figsize = (10,10))
-# sns.heatmap(cm, annot=True, annot_kws={"size": 12})
-# plt.savefig(config.CONFUSION_MATRIX)
-
-
-# ############################################################################
-# #                          Saving                                          #
-# ############################################################################
-
-# # The key difference between HDF5 and SavedModel is that HDF5 uses object configs to save the model architecture, 
-# # while SavedModel saves the execution graph. Thus, SavedModels are able to save custom objects like subclassed models and 
-# # custom layers without requiring the orginal code
-# model.save('net', save_format='tf')
-# # A new folder 'net' will be created in the working directory: contains 'assets', 'saved_model.pb', 'variables'
-# # The model architecture and training configuration, including the optimizer, losses, and metrics are stored in saved_model.pb
-# # The weights are saved in the variables directory
-
-# # OR
-
-# # save only the trained weights
-# model.save_weights('net.h5')
-
-
-# ############################################################################
-# #                          Loading                                         #
-# ############################################################################
-
-# # When saving the model and its layers, the SavedModel format stores the class name, call function, losses, 
-# # and weights (and the config, if implemented). The call function defines the computation graph of the model/layer. 
-# # In the absence of the model/layer config, the call function is used to create a model that exists like the original model 
-# # which can be trained, evaluated, and used for inference.
-# new_model = tf.keras.models.load_model("net", compile=False)
-
-# # OR
-
-# # call the build method
-# new_model = CustomConvNet() 
-# new_model.build((x_train.shape))
-# # reload the weights 
-# new_model.load_weights('net.h5')
+#################################
+#          MODEL SAVING         #
+#################################
+# save the model
+if not os.path.exists(os.path.join(config.MODEL_PATH, args["model"])):
+    os.makedirs(os.path.join(config.MODEL_PATH, args["model"]))
+model.save(os.path.join(config.MODEL_PATH, args["model"]))
