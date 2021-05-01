@@ -13,7 +13,7 @@ from tensorflow.keras.utils import plot_model
 #from attention import Attention
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # import utility files
-from models_test import *
+from models import *
 import config
 import utils
 import argparse
