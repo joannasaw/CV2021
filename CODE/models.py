@@ -59,7 +59,7 @@ class FPModule(tf.keras.Model):
 
 def final_model(MODEL_ARCH):
 
-    if MODEL_ARCH.split('_')[0] == 'vgg':
+    if MODEL_ARCH.split('_')[0] == 'vgg16':
         model = tf.keras.applications.VGG16(
             include_top=False, # dont need to have FC layer,
             weights='imagenet')
@@ -69,12 +69,12 @@ def final_model(MODEL_ARCH):
                                     )
 
         base_model.trainable = False
-        train_from_layer = 15
+        train_from_layer = 16
         for layer in base_model.layers[train_from_layer:]:
             layer.trainable = True
 
-    elif MODEL_ARCH.split('_')[0] == 'resnet':
-        model = tf.keras.applications.ResNet50(
+    elif MODEL_ARCH.split('_')[0] == 'vgg19':
+        model = tf.keras.applications.VGG19(
             include_top=False, # dont need to have FC layer
             weights='imagenet')
 
@@ -83,22 +83,49 @@ def final_model(MODEL_ARCH):
                                     )
 
         base_model.trainable = False
-        train_from_layer = 143
+        train_from_layer = 19
         for layer in base_model.layers[train_from_layer:]:
             layer.trainable = True
 
-    # print(base_model.summary())
-    # for i,layer in enumerate(base_model.layers):
-    #     print(i, layer.input_shape, layer.output_shape, layer.trainable)
+    elif MODEL_ARCH.split('_')[0] == 'resnet':
+        model = tf.keras.applications.ResNet50(
+            include_top=False, # dont need to have FC layer
+            weights='imagenet')
+
+        # skip_connec_ls = ['conv2_block1_0_conv', 'conv2_block1_0_bn', 'conv2_block1_add', 'conv2_block2_add', 'conv2_block3_add', 
+        # 'conv3_block1_0_conv', 'conv3_block1_0_bn', 'conv3_block1_add', 'conv3_block2_add', 'conv3_block3_add', 'conv3_block4_add', 
+        # 'conv4_block1_0_conv', 'conv4_block1_0_bn', 'conv4_block1_add', 'conv4_block2_add', 'conv4_block3_add', 'conv4_block4_add', 'conv4_block5_add','conv4_block6_add', 
+        # 'conv5_block1_0_conv', 'conv5_block1_0_bn', 'conv5_block1_add', 'conv5_block2_add', 'conv5_block3_add']
+        # base_model = Sequential()
+        # for layer in model.layers:
+        #     if layer.name not in skip_connec_ls:
+        #         base_model.add(layer)
+
+        base_model = tf.keras.Model(inputs=model.input,
+                                    outputs=model.layers[-2].output
+                                    )
+
+        base_model.trainable = False
+        train_from_layer = 168
+        for layer in base_model.layers[train_from_layer:]:
+            layer.trainable = True
+
+    print(base_model.summary())
+    for i,layer in enumerate(base_model.layers):
+        print(i, layer.input_shape, layer.output_shape, layer.trainable)
 
     finalModel = Sequential()
-    finalModel.add(TimeDistributed(base_model, input_shape=(None,256,256,3), name=MODEL_ARCH.split('_')[0]+"_backbone"))
-    
+    finalModel.add(TimeDistributed(base_model, input_shape=(None,256,256,3), 
+        name=MODEL_ARCH.split('_')[0]+"_backbone"))
+
+    if MODEL_ARCH.split('_')[0] == 'resnet':
+        finalModel.add(TimeDistributed(tf.keras.layers.Reshape((16,16,512)), name='reshape'))
+
     # add feature pooling module
     if MODEL_ARCH.split('_')[1] == 'fpm':
-        finalModel.add(TimeDistributed(FPModule())) 
+        finalModel.add(TimeDistributed(FPModule()))
 
-    # need to have only 1 dimension per cnn/fpm output to feed into LSTM layer - Flatten or use Pooling
+    # need to have only 2 dim per cnn/fpm output to feed into LSTM layer - Flatten or use Pooling
     finalModel.add(TimeDistributed(GlobalAveragePooling2D()))
 
     # add dropout of 0.25
@@ -106,19 +133,23 @@ def final_model(MODEL_ARCH):
     
     # add LSTM layer with 512 hidden units
     if 'lstm' in MODEL_ARCH.split('_'):
-        finalModel.add(LSTM(512, activation='relu', return_sequences=True if MODEL_ARCH.split('_')[-1] == 'attention' else False))
+        finalModel.add(LSTM(512, activation='relu', 
+            return_sequences=True if MODEL_ARCH.split('_')[-1] == 'attention' else False))
+
     # add Bidirectional extensions
     if 'blstm' in MODEL_ARCH.split('_'):
-        finalModel.add(Bidirectional(LSTM(512, activation='relu', return_sequences=True if MODEL_ARCH.split('_')[-1] == 'attention' else False), input_shape=(1,None,16,16,512)))
+        finalModel.add(Bidirectional(LSTM(512, activation='relu', 
+            return_sequences=True if MODEL_ARCH.split('_')[-1] == 'attention' else False), 
+            input_shape=(1,None,16,16,512)))
     
     # add attention mechanism
     if MODEL_ARCH.split('_')[-1] == 'attention':
         finalModel.add(Attention(512))
-    
+            
     # add dropout of 0.25
     finalModel.add(Dropout(0.25))
 
-    # add FC layer of num_classes=226 with softmax classifier head
+    # add FC layer of num_classes with softmax classifier head
     finalModel.add(Dense(config.NUM_CLASSES, activation="softmax"))
 
     # output the final model summary
