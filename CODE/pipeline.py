@@ -13,7 +13,7 @@ from tensorflow.keras.utils import plot_model
 #from attention import Attention
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # import utility files
-from models import *
+from models_test import *
 import config
 import utils
 import argparse
@@ -22,8 +22,7 @@ import matplotlib.pyplot as plt
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-m", "--model", required=True,
-	help="model architecture: (1)vgg_lstm (2)vgg_fpm_lstm (3)vgg_lstm_attention (4)vgg_fpm_lstm (5)vgg_fpm_blstm_attention")
+ap.add_argument("-m", "--model", required=True)
 args = vars(ap.parse_args())
 
 
@@ -62,7 +61,7 @@ checkpoint_prefix = os.path.join(checkpoint_dir, MODEL_ARCH, "ckpt")
 checkpoint = tf.train.Checkpoint(optimizer=optimizer)
 best_val_acc = 0.0
 
-val_loss_list = []
+
 def early_stop(loss_list, min_delta, patience):
     # no early stopping for 2*patience epochs 
     if len(loss_list)//patience < 2 :
@@ -118,6 +117,11 @@ def test_batch(step, x, y):
 #################################
 #          TRAINING LOOP        #
 #################################
+train_loss_list = []
+val_loss_list = []
+train_acc_list = []
+val_acc_list = []
+
 print("[INFO] Training model...")
 epochs = config.EPOCHS
 for epoch in range(1,epochs+1):
@@ -161,26 +165,31 @@ for epoch in range(1,epochs+1):
                 float(val_acc_metric.result())))
         best_val_acc = float(val_acc_metric.result())
 
+    train_loss_list.append(train_loss_value)
+    val_loss_list.append(val_loss_value)
+    train_acc_list.append(float(train_acc_metric.result()))
+    val_acc_list.append(float(val_acc_metric.result()))
+
     # reset training metrics at the end of each epoch
     train_acc_metric.reset_states()
     val_acc_metric.reset_states()
 
     # early stopping (if necessary)
-    val_loss_list.append(val_loss_value)
-    earlyStop = early_stop(val_loss_list, min_delta=0.01, patience=15)
+    FINAL_EPOCH = epoch
+    earlyStop = early_stop(val_loss_list, min_delta=0.01, patience=10)
     if earlyStop:
         print("[INFO] Early stop at epoch= %d/%d"%(epoch,epochs))
         print("[INFO] Terminating training...")
         break
 
 # plot the training loss and accuracy
-N = np.arange(0, config.EPOCHS)
+N = np.arange(0, FINAL_EPOCH)
 plt.style.use("ggplot")
 plt.figure()
-plt.plot(N, H.history["loss"], label="train_loss")
-plt.plot(N, H.history["val_loss"], label="val_loss")
-plt.plot(N, H.history["accuracy"], label="train_acc")
-plt.plot(N, H.history["val_accuracy"], label="val_acc")
+plt.plot(N, train_loss_list, label="train_loss")
+plt.plot(N, val_loss_list, label="val_loss")
+plt.plot(N, train_acc_list, label="train_acc")
+plt.plot(N, val_acc_list, label="val_acc")
 plt.title("Training Loss and Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
@@ -194,3 +203,7 @@ plt.savefig(args["model"]+"_plot.png")
 if not os.path.exists(os.path.join(config.MODEL_PATH, args["model"])):
     os.makedirs(os.path.join(config.MODEL_PATH, args["model"]))
 model.save(os.path.join(config.MODEL_PATH, args["model"]))
+
+with open("val_acc_results_"+args["model"]+".txt", "w") as f:
+    for i in val_acc_list:
+        f.write(str(i)+"\n")
