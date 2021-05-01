@@ -19,9 +19,10 @@ https://data.chalearnlap.cvc.uab.cat/AuTSL/data/train/train_set_vfbha39.zip.018
 https://data.chalearnlap.cvc.uab.cat/AuTSL/data/validation/val_set_bjhfy68.zip.001
 https://data.chalearnlap.cvc.uab.cat/AuTSL/data/validation/val_set_bjhfy68.zip.002
 https://data.chalearnlap.cvc.uab.cat/AuTSL/data/validation/val_set_bjhfy68.zip.003
-http://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_set_xsaft57.zip.001
-http://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_set_xsaft57.zip.002
-http://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_set_xsaft57.zip.003
-http://data.chalearnlap.cvc.uab.cat/AuTSL/data/train/train_labels.csv
-http://data.chalearnlap.cvc.uab.cat/AuTSL/data/validation/validation_labels.zip
-http://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_labels.zip
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_set_xsaft57.zip.001
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_set_xsaft57.zip.002
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_set_xsaft57.zip.003
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/train/train_labels.csv
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/validation/validation_labels.zip
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/test/test_labels.zip
+https://data.chalearnlap.cvc.uab.cat/AuTSL/data/SignList_ClassId_TR_EN.csv
