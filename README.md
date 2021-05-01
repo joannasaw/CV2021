@@ -72,6 +72,32 @@ $ cd CODE
 $ python preprocess.py
 ```
 
+### Training
+``` 
+$ cd CODE
+$ python pipeline.py --model [MODEL_NAME]
+```
+MODEL_NAME must be one of the following:
+- vgg16_lstm
+- vgg19_lstm
+- resnet_lstm
+- vgg16_fpm_lstm
+- vgg19_fpm_lstm
+- resnet_fpm_lstm
+- vgg16_lstm_attention
+- vgg19_lstm_attention
+- resnet_lstm_attention
+- vgg16_fpm_lstm_attention
+- vgg19_fpm_lstm_attention
+- resnet_fpm_lstm_attention
+- vgg16_fpm_blstm_attention
+- vgg19_fpm_blstm_attention
+- resnet_fpm_blstm_attention
+``` 
+$ ./train.sh
+```
+We have also provided a convenience script for training for a single backbone variant i.e. VGG16 / VGG19 / ResNet50
+
 ### Acknowledgements
 ```
 @ARTICLE{9210578,  
