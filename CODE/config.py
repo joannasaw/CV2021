@@ -41,7 +41,7 @@ NUM_CLASSES = len(CLASSES)
 # frames per video after padding
 FRAMES_PADDED = 10 # was 30 earlier
 
-FPS = 10
+FPS = 30
 VID_NUM_PADDED = 3
 OUTPUT_FILE_TYPE = "png"
 
