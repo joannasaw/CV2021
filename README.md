@@ -1,4 +1,4 @@
-## CV2021
+# CV2021
 This README.md documents the files and work for 50.035 Computer Vision taken in Spring 2021. Specifically, the course project requires the team to propose, design and build a meaningful solution using Computer Vision concepts. The team has selected the research track (general) where we are looking to study the following paper, *AUTSL: A Large Scale Multi-Model Turkish Sign Language Dataset and Baseline Methods (Sincan & Keles, 2020)*, implement some algorithms, perform experiments, and propose improvements on the algorithms e.g., training algorithm, network architecture. The expectation is that by the end of the project, the team has gained reasonable understanding of the selected paper(s) and performed some related experiments.   
 
 ```
@@ -39,7 +39,7 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 
 * Note that the DATA folder will be ignored, and must be created locally
 
-### Pre-requisites
+## Pre-requisites
 - Python >= 3.6
 - Pillow==6.2.1
 - attention==4.0
@@ -53,12 +53,12 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 $ pip install -r requirements.txt
 ```
 
-### Download AUTSL dataset
+## Download AUTSL dataset
 ```
 $ wget -i download.txt
 ```
 
-### Decompress the data
+## Decompress the data
 All files are encrypted. To decompress the data, use the associated keys:
 - Train data: MdG3z6Eh1t
 - Validation data: bhRY5B9zS2
@@ -75,7 +75,7 @@ $ 7z x test_set_xsaft57.zip.001
 ```
 **Ensure data folders adopt the same naming and file structure as that of README.md. Make changes in ./CODE/config.py if necessary.**
 
-### Extract input frames from videos
+## Extract input frames from videos
 ```
 (WITHOUT Background Masking) 
 $ cd CODE
@@ -86,7 +86,7 @@ $ cd CODE
 $ python preprocess.py
 ```
 
-### Training
+## Training
 ``` 
 $ cd CODE
 $ python pipeline.py --model [MODEL_NAME]
@@ -112,7 +112,7 @@ $ ./train.sh
 ```
 We have provided a convenience script to train for a single backbone variant i.e. VGG16 / VGG19 / ResNet50
 
-### Acknowledgements
+## Acknowledgements
 ```
 @ARTICLE{9210578,  
 author={Sincan, Ozge Mercanoglu and Keles, Hacer Yalim},  
