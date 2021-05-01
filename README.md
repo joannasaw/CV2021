@@ -61,6 +61,17 @@ $ 7z x test_set_xsaft57.zip.001
 ```
 Ensure data adopts the same file structure as that of README.md
 
+### Extract input frames from videos
+```
+(WITHOUT Background Masking) 
+$ cd CODE
+$ python extract_frames.py
+
+(WITH Background Masking)
+$ cd CODE
+$ python preprocess.py
+```
+
 ### Acknowledgements
 ```
 @ARTICLE{9210578,  
