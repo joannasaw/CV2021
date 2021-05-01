@@ -96,7 +96,7 @@ MODEL_NAME must be one of the following:
 ``` 
 $ ./train.sh
 ```
-We have also provided a convenience script for training for a single backbone variant i.e. VGG16 / VGG19 / ResNet50
+We have provided a convenience script to train for a single backbone variant i.e. VGG16 / VGG19 / ResNet50
 
 ### Acknowledgements
 ```
