@@ -59,7 +59,7 @@ $ 7z x val_set_bjhfy68.zip.001
 OR 
 $ 7z x test_set_xsaft57.zip.001
 ```
-Ensure data adopts the same file structure as that of README.md
+**Ensure data folders adopt the same naming and file structure as that of README.md. Make changes in ./CODE/config.py if necessary.**
 
 ### Extract input frames from videos
 ```
