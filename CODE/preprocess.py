@@ -9,9 +9,11 @@ import numpy as np
 import config
 
 # CHANGE parameters here
-INPUT_DATASETS = [(config.TEST_VID_COLOR_PATH, config.TEST_VID_DEPTH_PATH)]
-OUTPUT_DATASETS = [config.TEST_IMGS_PATH]
-LABELS_DATASETS = [config.TEST_LABELS]
+INPUT_DATASETS = [(config.TRAIN_VID_COLOR_PATH, config.TRAIN_VID_DEPTH_PATH), 
+                 (config.VAL_VID_COLOR_PATH, config.VAL_VID_DEPTH_PATH),
+                 (config.TEST_VID_COLOR_PATH, config.TEST_VID_DEPTH_PATH)]
+OUTPUT_DATASETS = [config.TRAIN_IMGS_PATH, config.VAL_IMGS_PATH, config.TEST_IMGS_PATH]
+LABELS_DATASETS = [config.TRAIN_LABELS, config.VAL_LABELS, config.TEST_LABELS]
 FPS = config.FPS
 NUM_PADDED = config.VID_NUM_PADDED
 OUTPUT_FILE_TYPE = config.OUTPUT_FILE_TYPE
