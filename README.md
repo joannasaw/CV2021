@@ -45,10 +45,10 @@ $ wget -i download.txt
 
 ### Decompress the data
 All files are encrypted. To discompress the data, use the associated keys.
-Train data: MdG3z6Eh1t
-Validation data: bhRY5B9zS2
-Validation labels: zYX5W7fZ
-Test data: ds6Kvdus3o
+- Train data: MdG3z6Eh1t
+- Validation data: bhRY5B9zS2
+- Validation labels: zYX5W7fZ
+- Test data: ds6Kvdus3o
 ```
 $ sudo apt-get update
 $ sudo apt-get install p7zip-full
