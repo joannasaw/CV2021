@@ -77,11 +77,11 @@ $ 7z x test_set_xsaft57.zip.001
 
 ### Extract input frames from videos
 ```
-(**WITHOUT** Background Masking) 
+(WITHOUT Background Masking) 
 $ cd CODE
 $ python extract_frames.py
 
-(**WITH** Background Masking)
+(WITH Background Masking)
 $ cd CODE
 $ python preprocess.py
 ```
