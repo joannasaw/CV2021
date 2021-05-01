@@ -39,6 +39,20 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 
 * Note that the DATA folder will be ignored, and must be created locally
 
+### Pre-requisites
+- Python >= 3.6
+- Pillow==6.2.1
+- attention==4.0
+- av==8.0.3
+- glob2==0.7
+- matplotlib==3.2.1
+- opencv-contrib-python==4.2.0
+- pandas==0.25.3
+- tensorflow==2.2.0 / tensorflow-gpu==2.2.0
+```
+$ pip install -r requirements.txt
+```
+
 ### Download AUTSL dataset
 ```
 $ wget -i download.txt
