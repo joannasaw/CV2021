@@ -43,7 +43,12 @@ This README.md documents the files and work for 50.035 Computer Vision taken in 
 $ wget -i download.txt
 ```
 
-### Decompressing the data: on Ubuntu, install 7zip and decompress
+### Decompress the data
+All files are encrypted. To discompress the data, use the associated keys.
+Train data: MdG3z6Eh1t
+Validation data: bhRY5B9zS2
+Validation labels: zYX5W7fZ
+Test data: ds6Kvdus3o
 ```
 $ sudo apt-get update
 $ sudo apt-get install p7zip-full
@@ -51,11 +56,8 @@ $ 7z x train_set_vfbha39.zip.001
 OR
 $ 7z x val_set_bjhfy68.zip.001
 OR 
-
+$ 7z x test_set_xsaft57.zip.001
 ```
-All files are encrypted. To discompress the data, use the associated keys.
-Train data: MdG3z6Eh1t
-Validation data: bhRY5B9zS2
 
 ### Acknowledgements
 ```
