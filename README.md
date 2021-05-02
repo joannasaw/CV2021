@@ -8,6 +8,8 @@ This README documents work for the 50.035 Computer Vision course taken in Spring
 |   ├── extract_frames.py
 │   ├── models.py
 │   ├── pipeline.py
+|   ├── preprocess.py
+|   ├── rename_labels.py
 |   ├── utils.py
 │   └── video_to_frames.py
 |
